@@ -8,6 +8,7 @@ export interface ServiceOption {
   defaultValue?: any;
 }
 
+
 export interface Service {
   id: string;
   slug: string;
@@ -18,6 +19,7 @@ export interface Service {
   image?: string;
   options: ServiceOption[];
   minHours?: number;
+  expectations?: string[];
 }
 
 export const SERVICES: Service[] = [
@@ -27,6 +29,13 @@ export const SERVICES: Service[] = [
     title: "House Cleaning Services",
     basePrice: 35,
     priceUnit: "/hr",
+    expectations: [
+        "Dusting and wiping surfaces",
+        "Floor mopping and vacuuming",
+        "Furniture cleaning and polishing",
+        "Arranging bedsheets and tidying up",
+        "General kitchen and bathroom cleaning"
+    ],
     options: [
       {
         id: "frequency",
@@ -77,6 +86,13 @@ export const SERVICES: Service[] = [
     title: "Sofa Cleaning Service",
     basePrice: 0,
     priceUnit: "based on selection",
+    expectations: [
+        "Deep vacuuming to remove dust and allergens",
+        "Shampooing (wet/dry based on fabric) treatment",
+        "Stain removal and spot treatment",
+        "Sanitization and deodorizing",
+        "Fabric protection layer (optional add-on)"
+    ],
     options: [
       {
         id: "frequency",
@@ -116,6 +132,13 @@ export const SERVICES: Service[] = [
     title: "Rug / Carpet Cleaning",
     basePrice: 0,
     priceUnit: "based on selection",
+    expectations: [
+        "Pre-inspection and spot testing",
+        "Deep vacuuming",
+        "Hot water extraction or dry cleaning",
+        "Stain and spot removal",
+        "Grooming and drying"
+    ],
     options: [
       {
         id: "frequency",
@@ -154,6 +177,13 @@ export const SERVICES: Service[] = [
     basePrice: 699,
     priceUnit: "starting from",
     description: "Scope includes protection, sanding, priming, 2-3 coats.",
+    expectations: [
+        "Furniture and floor covering/protection",
+        "Surface preparation (sanding, filling cracks)",
+        "Priming of walls where necessary",
+        "Application of 2-3 coats of premium paint",
+        "Post-service cleanup"
+    ],
     options: [
       {
         id: "service-type",
@@ -191,6 +221,13 @@ export const SERVICES: Service[] = [
     title: "Kitchen Deep Cleaning",
     basePrice: 199,
     priceUnit: "starting from",
+    expectations: [
+        "Degreasing of hood and stovetop",
+        "Internal and external cabinet cleaning",
+        "Appliance cleaning (fridge, oven, microwave)",
+        "Sink descaling and sanitization",
+        "Floor scrubbing and grout cleaning"
+    ],
     options: [
        {
         id: "size",
@@ -214,6 +251,13 @@ export const SERVICES: Service[] = [
     title: "Deep Cleaning Services",
     basePrice: 399,
     priceUnit: "starting from",
+    expectations: [
+        "Comprehensive cleaning of all rooms",
+        "Deep scrubbing of floors and tiles",
+        "Window and balcony cleaning",
+        "Disinfection of bathrooms and kitchen",
+        "Cleaning of light fixtures and vents"
+    ],
     options: [
         {
             id: "type",
@@ -231,6 +275,192 @@ export const SERVICES: Service[] = [
                 { label: "5 BHK Villa (1799 AED)", value: "5bhk-villa", price: 1799 },
             ],
             defaultValue: "studio"
+        }
+    ]
+  },
+  {
+    id: "commercial-deep-cleaning",
+    slug: "commercial-deep-cleaning",
+    title: "Commercial / Office Deep Cleaning",
+    basePrice: 0,
+    priceUnit: "per sqm",
+    expectations: [
+        "Workstation and desk sanitization",
+        "Carpet vacuuming and floor polishing",
+        "Glass partition and window cleaning",
+        "Kitchenette and restroom deep cleaning",
+        "Trash removal and bin sanitization"
+    ],
+    options: [
+        {
+            id: "area-size",
+            label: "Area Size (SQM) - 10 AED/SQM",
+            type: "quantity",
+            price: 10,
+            defaultValue: 50
+        }
+    ]
+  },
+  {
+    id: "limewash-painting",
+    slug: "limewash-painting",
+    title: "Limewash Texture Painting",
+    basePrice: 0,
+    priceUnit: "per sqm",
+    expectations: [
+        "Surface priming with specialized primer",
+        "Application of first limewash coat (criss-cross motion)",
+        "Second coat application for texture depth",
+        "Final detailing and touch-ups",
+        "Sealing (optional for high traffic areas)"
+    ],
+    options: [
+        {
+            id: "area-size",
+            label: "Total Area (SQM) - 115 AED/SQM",
+            type: "quantity",
+            price: 115,
+            defaultValue: 10
+        }
+    ]
+  },
+  {
+    id: "mattress-cleaning",
+    slug: "mattress-cleaning",
+    title: "Mattress Cleaning Service",
+    basePrice: 99,
+    priceUnit: "starting from",
+    expectations: [
+        "High-power UV vacuuming for dust mites",
+        "Steam cleaning for deep sanitation",
+        "Stain pre-treatment and removal",
+        "Moisture extraction",
+        "Eco-friendly anti-allergen spray"
+    ],
+    options: [
+        {
+            id: "single-mattress",
+            label: "Single Mattress (99 AED)",
+            type: "quantity",
+            price: 99,
+            defaultValue: 0
+        },
+        {
+            id: "queen-mattress",
+            label: "Queen Mattress (149 AED)",
+            type: "quantity",
+            price: 149,
+            defaultValue: 0
+        },
+        {
+            id: "king-mattress",
+            label: "King Mattress (199 AED)",
+            type: "quantity",
+            price: 199,
+            defaultValue: 0
+        }
+    ]
+  },
+  {
+    id: "bathroom-deep-cleaning",
+    slug: "bathroom-deep-cleaning",
+    title: "Bathroom Deep Cleaning",
+    basePrice: 199,
+    priceUnit: "starting from",
+    expectations: [
+        "Tile and grout scrubbing and whitening",
+        "Sanitization of toilet, sink, and bathtub",
+        "Mirror and glass polishing",
+        "Chrome fixture descaling and polishing",
+        "Drain unclogging and deodorizing"
+    ],
+    options: [
+        {
+            id: "small-bathroom",
+            label: "Small Bathroom (199 AED)",
+            type: "quantity",
+            price: 199,
+            defaultValue: 0
+        },
+        {
+            id: "large-bathroom",
+            label: "Large Bathroom / Master (249 AED)",
+            type: "quantity",
+            price: 249,
+            defaultValue: 0
+        }
+    ]
+  },
+  {
+    id: "renovation-services",
+    slug: "renovation-services",
+    title: "Renovation Services",
+    basePrice: 1000,
+    priceUnit: "starting from",
+    expectations: [
+        "Initial site survey and consultation",
+        "Material selection and procurement",
+        "Demolition and debris removal (if required)",
+        "Installation/Construction works",
+        "Final finishing and quality inspection"
+    ],
+    options: [
+      {
+        id: "frequency",
+        label: "Select your booking frequency",
+        type: "select",
+        options: [
+          { label: "One Time", value: "one-time" }
+        ],
+        defaultValue: "one-time",
+      },
+      {
+          id: "hours",
+          label: "How many Hours? (200 AED/hr)",
+          type: "quantity",
+          price: 200,
+          defaultValue: 5
+      }
+    ]
+  },
+  {
+    id: "moulding-services",
+    slug: "moulding-services",
+    title: "Moulding Services",
+    basePrice: 450,
+    priceUnit: "starting from",
+    expectations: [
+        "Measurement and design planning",
+        "Cutting and preparation of moulding trims",
+        "Precision installation and fixing",
+        "Caulking and filling gaps",
+        "Final painting or finishing of trims"
+    ],
+    options: [
+        {
+            id: "service-type",
+            label: "Service Type",
+            type: "select",
+            options: [
+                 { label: "Moulding Trim Services (Starting 450 AED)", value: "trim", price: 450 }
+            ],
+            defaultValue: "trim"
+        },
+        {
+            id: "frequency",
+            label: "Select your booking frequency",
+            type: "select",
+            options: [
+              { label: "One Time", value: "one-time" }
+            ],
+            defaultValue: "one-time",
+        },
+        {
+            id: "hours",
+            label: "Duration (Hours) - 100 AED/hr",
+            type: "quantity",
+            price: 100,
+            defaultValue: 0
         }
     ]
   }

@@ -603,26 +603,22 @@ export function BookingStepper({ service }: BookingStepperProps) {
         </div>
 
         {/* What to Expect Section */}
-        <div className="bg-white rounded-2xl shadow-lg ring-1 ring-gray-100 p-6">
-            <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <div className="w-1 h-6 bg-[#00B4D8] rounded-full" />
-                What to Expect
-            </h4>
-            <ul className="space-y-3">
-                {[
-                    "Dusting",
-                    "Floor Mopping",
-                    "Furniture Cleaning",
-                    "Arranging Bedsheets",
-                    "General Cleaning"
-                ].map((item, i) => (
-                    <li key={i} className="flex items-center text-sm text-gray-600">
-                        <Check className="w-4 h-4 text-[#7B2D8B] mr-3 shrink-0" />
-                        {item}
-                    </li>
-                ))}
-            </ul>
-        </div>
+        {service.expectations && service.expectations.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-lg ring-1 ring-gray-100 p-6">
+                <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <div className="w-1 h-6 bg-[#00B4D8] rounded-full" />
+                    What to Expect
+                </h4>
+                <ul className="space-y-3">
+                    {service.expectations.map((item, i) => (
+                        <li key={i} className="flex items-center text-sm text-gray-600">
+                            <Check className="w-4 h-4 text-[#7B2D8B] mr-3 shrink-0" />
+                            {item}
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        )}
       </div>
     </div>
   );
