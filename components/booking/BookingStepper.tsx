@@ -403,6 +403,8 @@ export function BookingStepper({ service }: BookingStepperProps) {
                         selected={formData.schedule.date}
                         onSelect={(date) => setFormData({...formData, schedule: {...formData.schedule, date}})}
                         initialFocus
+                        fromDate={new Date()}
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                     />
                 </PopoverContent>
             </Popover>
@@ -459,11 +461,11 @@ export function BookingStepper({ service }: BookingStepperProps) {
             />
         </div>
         <div className="grid gap-2">
-            <Label htmlFor="instructions">Special Instructions</Label>
-            <Input 
+            <Label htmlFor="instructions">Additional Notes</Label>
+            <textarea
                 id="instructions" 
-                className="h-12"
-                placeholder="Gate code, specific issues, etc."
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="Any specific requests, gate codes, or details..."
                 value={formData.contact.instructions}
                 onChange={(e) => setFormData({...formData, contact: {...formData.contact, instructions: e.target.value}})}
             />
@@ -590,6 +592,28 @@ export function BookingStepper({ service }: BookingStepperProps) {
                  <p className="text-xs font-semibold text-gray-500">Need Help? Call Us</p>
                  <a href="tel:+971501234567" className="text-[#7B2D8B] font-bold text-lg hover:underline">+971 50 123 4567</a>
             </div>
+        </div>
+
+        {/* What to Expect Section */}
+        <div className="bg-white rounded-2xl shadow-lg ring-1 ring-gray-100 p-6">
+            <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <div className="w-1 h-6 bg-[#00B4D8] rounded-full" />
+                What to Expect
+            </h4>
+            <ul className="space-y-3">
+                {[
+                    "Dusting",
+                    "Floor Mopping",
+                    "Furniture Cleaning",
+                    "Arranging Bedsheets",
+                    "General Cleaning"
+                ].map((item, i) => (
+                    <li key={i} className="flex items-center text-sm text-gray-600">
+                        <Check className="w-4 h-4 text-[#7B2D8B] mr-3 shrink-0" />
+                        {item}
+                    </li>
+                ))}
+            </ul>
         </div>
       </div>
     </div>
