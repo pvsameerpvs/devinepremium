@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { BookingStepper } from "@/components/booking/BookingStepper";
 import Link from "next/link";
 import Image from "next/image";
+import { Footer } from "@/components/Footer";
 
 interface PageProps {
   params: Promise<{
@@ -74,11 +75,7 @@ export default async function BookServicePage({ params }: PageProps) {
       </div>
 
       {/* ── Footer ── */}
-      <footer className="border-t py-6 mt-8" style={{ background: "#0D0D1A" }}>
-        <div className="container mx-auto px-4 text-center text-sm text-gray-400">
-          © {new Date().getFullYear()} Devine Premier Technical Services. All rights reserved.
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

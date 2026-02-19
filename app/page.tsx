@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Footer } from "@/components/Footer";
 
 export default function Home() {
   return (
@@ -181,36 +182,7 @@ export default function Home() {
       </main>
 
       {/* ── Footer ── */}
-      <footer className="border-t py-10 mt-8" style={{ background: "#0D0D1A" }}>
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            {/* Logo in footer */}
-            <Link href="/" className="flex items-center gap-3">
-              <Image
-                src="/logo.png"
-                alt="Devine Premier Technical Services"
-                width={48}
-                height={48}
-                className="object-contain"
-              />
-              <div>
-                <p className="text-sm font-bold text-white">Devine Premier</p>
-                <p className="text-xs text-gray-400">Technical Services</p>
-              </div>
-            </Link>
-
-            <p className="text-sm text-gray-400 text-center">
-              © {new Date().getFullYear()} Devine Premier Technical Services. All rights reserved.
-            </p>
-
-            <div className="flex gap-4 text-sm">
-              <Link href="/" className="text-gray-400 hover:text-[#00B4D8] transition-colors">Home</Link>
-              <Link href="/about" className="text-gray-400 hover:text-[#00B4D8] transition-colors">About</Link>
-              <Link href="/contact" className="text-gray-400 hover:text-[#00B4D8] transition-colors">Contact</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
