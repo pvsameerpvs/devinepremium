@@ -217,25 +217,33 @@ export function BookingStepper({ service }: BookingStepperProps) {
             )}
 
             {opt.type === "select" && opt.options && (
-              <Select
-                onValueChange={(val) => updateServiceOption(opt.id, val)}
-                defaultValue={opt.defaultValue}
-                value={formData.serviceOptions[opt.id]}
-              >
-                <SelectTrigger className="h-12 border-gray-300 rounded-xl focus:ring-[#00B4D8]">
-                  <SelectValue placeholder="Select an option" />
-                </SelectTrigger>
-                <SelectContent>
-                  {opt.options.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      <span className="flex justify-between w-full gap-4">
-                          <span>{o.label}</span>
-                          {o.price && <span className="text-muted-foreground ml-auto"> {o.price} AED</span>}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <>
+                <Select
+                  onValueChange={(val) => updateServiceOption(opt.id, val)}
+                  defaultValue={opt.defaultValue}
+                  value={formData.serviceOptions[opt.id]}
+                >
+                  <SelectTrigger className="h-12 border-gray-300 rounded-xl focus:ring-[#00B4D8]">
+                    <SelectValue placeholder="Select an option" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {opt.options.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        <span className="flex justify-between w-full gap-4">
+                            <span>{o.label}</span>
+                            {o.price && <span className="text-muted-foreground ml-auto"> {o.price} AED</span>}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* Discount Helper Text for Maid Cleaning Frequency */}
+                {service.id === 'maid-cleaning' && opt.id === 'frequency' && (
+                    <p className="text-sm text-[#00B4D8] font-medium mt-1 ml-1 flex items-center gap-1">
+                        Get Discounted Rates for frequent bookings ✨
+                    </p>
+                )}
+              </>
             )}
 
             {opt.type === "quantity" && (
