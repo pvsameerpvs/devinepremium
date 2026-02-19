@@ -110,14 +110,7 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="border-t border-gray-800 pt-8 mt-4 text-center md:text-left flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
-            <p>© {new Date().getFullYear()} Devine Premier Technical Services. All rights reserved.</p>
-            <div className="flex gap-6 mt-4 md:mt-0">
-                <Link href="#" className="hover:text-[#00B4D8] transition-colors">Privacy Policy</Link>
-                <Link href="#" className="hover:text-[#00B4D8] transition-colors">Terms of Service</Link>
-            </div>
-        </div>
+       
       </div>
     </footer>
   );

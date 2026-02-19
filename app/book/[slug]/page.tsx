@@ -47,8 +47,9 @@ export default async function BookServicePage({ params }: PageProps) {
             href="/"
             className="text-sm text-muted-foreground hover:text-[#00B4D8] transition-colors"
           >
-            ← Back to Services
+          Home
           </Link>
+          
         </div>
       </header>
 
