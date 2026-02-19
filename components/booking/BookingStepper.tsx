@@ -45,6 +45,7 @@ const STEPS = [
 
 export function BookingStepper({ service }: BookingStepperProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<any>({
     serviceOptions: {},
     address: {
@@ -153,9 +154,40 @@ export function BookingStepper({ service }: BookingStepperProps) {
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      console.log("Submit", formData);
-      alert("Booking Submitted! (Check console for data)");
+      setIsModalOpen(true);
     }
+  };
+
+  const handleWhatsAppSubmit = () => {
+      const message = `
+*New Booking Request - JustSearch*
+---------------------------
+*Service:* ${service.title}
+*Total Estimate:* ${total} AED
+
+*Schedule:*
+📅 Date: ${formData.schedule.date ? format(formData.schedule.date, "PPP") : "Not Set"}
+⏰ Time: ${formData.schedule.timeSlot || "Not Set"}
+
+*Location:*
+📍 ${formData.address.building}, ${formData.address.apartment}
+🌍 ${formData.address.location}, ${formData.address.city}
+
+*Client Details:*
+👤 Name: ${formData.contact.fullName}
+📞 Phone: ${formData.contact.phone}
+📧 Email: ${formData.contact.email}
+📝 Notes: ${formData.contact.instructions || "None"}
+
+---------------------------
+_Please confirm availability._
+      `.trim();
+
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappUrl = `https://wa.me/971563758229?text=${encodedMessage}`;
+      
+      window.open(whatsappUrl, '_blank');
+      setIsModalOpen(false);
   };
 
   const handleBack = () => {
@@ -375,7 +407,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
             <Input 
                 id="building" 
                 placeholder="Name or Number" 
-                 className="h-12"
+                className="h-12"
                 value={formData.address.building}
                 onChange={(e) => setFormData({...formData, address: {...formData.address, building: e.target.value}})}
             />
@@ -385,7 +417,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
             <Input 
                 id="apartment" 
                 placeholder="1204"
-                 className="h-12"
+                className="h-12"
                 value={formData.address.apartment}
                 onChange={(e) => setFormData({...formData, address: {...formData.address, apartment: e.target.value}})}
              />
@@ -400,7 +432,13 @@ export function BookingStepper({ service }: BookingStepperProps) {
             <Label>Date of Service</Label>
             <Popover>
                 <PopoverTrigger asChild>
-                    <Button variant={"outline"} className={cn("w-full h-12 justify-start text-left font-normal border-gray-300", !formData.schedule.date && "text-muted-foreground")}>
+                    <Button
+                        variant={"outline"}
+                        className={cn(
+                            "w-full h-12 justify-start text-left font-normal border-gray-300",
+                            !formData.schedule.date && "text-muted-foreground"
+                        )}
+                    >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {formData.schedule.date ? format(formData.schedule.date, "PPP") : <span>Pick a date</span>}
                     </Button>
@@ -598,11 +636,11 @@ export function BookingStepper({ service }: BookingStepperProps) {
             
             <div className="bg-gray-50 p-4 border-t border-gray-100 text-center">
                  <p className="text-xs font-semibold text-gray-500">Need Help? Call Us</p>
-                 <a href="tel:+971501234567" className="text-[#7B2D8B] font-bold text-lg hover:underline">+971 50 123 4567</a>
+                 <a href="tel:+971563758229" className="text-[#7B2D8B] font-bold text-lg hover:underline">+971 56 375 8229</a>
             </div>
         </div>
 
-        {/* What to Expect Section */}
+      {/* What to Expect Section */}
         {service.expectations && service.expectations.length > 0 && (
             <div className="bg-white rounded-2xl shadow-lg ring-1 ring-gray-100 p-6">
                 <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -620,6 +658,58 @@ export function BookingStepper({ service }: BookingStepperProps) {
             </div>
         )}
       </div>
+
+       {/* Confirmation Modal */}
+       {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="bg-[#0D0D1A] p-6 text-white text-center relative">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B4D8] rounded-full blur-3xl opacity-20 -mr-10 -mt-10" />
+               <h3 className="text-xl font-bold relative z-10">Confirm Booking</h3>
+               <p className="text-sm text-gray-400 mt-1 relative z-10">Review your details before sending</p>
+            </div>
+            
+            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+               <div className="space-y-2">
+                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Service</p>
+                   <p className="font-medium text-gray-900">{service.title}</p>
+               </div>
+               
+               <div className="space-y-2">
+                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Schedule</p>
+                   <p className="font-medium text-gray-900">
+                       {formData.schedule.date ? format(formData.schedule.date, "PPP") : "Date not set"} at {formData.schedule.timeSlot || "Time not set"}
+                   </p>
+               </div>
+
+                <div className="space-y-2">
+                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Location</p>
+                   <p className="font-medium text-gray-900 text-sm">
+                       {formData.address.building}, {formData.address.apartment}, {formData.address.location}, {formData.address.city}
+                   </p>
+               </div>
+
+               <div className="space-y-2">
+                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Contact</p>
+                   <p className="font-medium text-gray-900 text-sm">{formData.contact.fullName}</p>
+                   <p className="text-sm text-gray-600">{formData.contact.phone}</p>
+               </div>
+
+               <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
+                    <span className="font-semibold text-gray-700">Total Estimate</span>
+                    <span className="text-xl font-bold text-[#00B4D8]">{total} AED</span>
+               </div>
+            </div>
+
+            <div className="p-6 bg-gray-50 border-t border-gray-100 flex gap-3">
+               <Button variant="outline" className="flex-1" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+               <Button className="flex-1 bg-[#25D366] hover:bg-[#128C7E] text-white" onClick={handleWhatsAppSubmit}>
+                  Confirm via WhatsApp
+               </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
