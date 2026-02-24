@@ -1,5 +1,5 @@
 
-import { getServiceBySlug } from "@/lib/services";
+import { getServiceBySlug, SERVICES } from "@/lib/services";
 import { notFound } from "next/navigation";
 import { BookingStepper } from "@/components/booking/BookingStepper";
 import Link from "next/link";
@@ -10,6 +10,12 @@ interface PageProps {
   params: Promise<{
     slug: string;
   }>;
+}
+
+export async function generateStaticParams() {
+  return SERVICES.map((service) => ({
+    slug: service.slug,
+  }));
 }
 
 export default async function BookServicePage({ params }: PageProps) {
@@ -25,7 +31,7 @@ export default async function BookServicePage({ params }: PageProps) {
       {/* ── Header ── */}
       <header className="bg-white border-b border-border shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="https://devinepremierservices.ae" className="flex items-center gap-3">
             <Image
               src="/logo.png"
               alt="Devine Premier Technical Services"
@@ -44,7 +50,7 @@ export default async function BookServicePage({ params }: PageProps) {
             </div>
           </Link>
           <Link
-            href="/"
+            href="https://devinepremierservices.ae"
             className="text-sm text-muted-foreground hover:text-[#00B4D8] transition-colors"
           >
           Home

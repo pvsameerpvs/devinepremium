@@ -19,7 +19,7 @@ export default function Home() {
       <header className="bg-white border-b border-border shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="https://devinepremierservices.ae" className="flex items-center gap-3">
             <Image
               src="/logo.png"
               alt="Devine Premier Technical Services"
@@ -42,17 +42,17 @@ export default function Home() {
           <nav>
             <ul className="flex items-center space-x-6 text-sm font-medium">
               <li>
-                <Link href="/" className="text-foreground hover:text-[#00B4D8] transition-colors">
+                <Link href="https://devinepremierservices.ae" className="text-foreground hover:text-[#00B4D8] transition-colors">
                   Home
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="text-foreground hover:text-[#00B4D8] transition-colors">
+                <Link href="https://devinepremierservices.ae/about-us/" className="text-foreground hover:text-[#00B4D8] transition-colors">
                   About
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-foreground hover:text-[#00B4D8] transition-colors">
+                <Link href="https://devinepremierservices.ae/contact-us/" className="text-foreground hover:text-[#00B4D8] transition-colors">
                   Contact
                 </Link>
               </li>
@@ -99,7 +99,7 @@ export default function Home() {
               Explore Services
             </Link>
             <Link
-              href="/contact"
+              href="https://devinepremierservices.ae/contact-us/"
               className="px-8 py-3.5 rounded-full font-semibold text-base border border-white/20 text-white hover:bg-white/10 transition-all"
             >
               Contact Us

@@ -160,7 +160,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
 
   const handleWhatsAppSubmit = () => {
       const message = `
-*New Booking Request - JustSearch*
+*New Booking Request - Devine Premier*
 ---------------------------
 *Service:* ${service.title}
 *Total Estimate:* ${total} AED
@@ -279,7 +279,7 @@ _Please confirm availability._
             )}
 
             {opt.type === "quantity" && (
-                <div className="flex items-center p-4 bg-gray-50 rounded-xl border border-gray-200 w-full sm:w-fit">
+                <div className="flex items-center justify-between sm:justify-start p-4 bg-gray-50 rounded-xl border border-gray-200 w-full sm:w-fit">
                     <Button
                         variant="outline"
                         size="icon"
@@ -401,7 +401,7 @@ _Please confirm availability._
             onChange={(e) => setFormData({...formData, address: {...formData.address, location: e.target.value}})}
         />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="grid gap-2">
             <Label htmlFor="building">Building / Villa</Label>
             <Input 
@@ -520,9 +520,9 @@ _Please confirm availability._
   );
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
       {/* ── Stepper Sidebar / Header (Responsive) ── */}
-      <div className="xl:col-span-8 space-y-8">
+      <div className="lg:col-span-8 space-y-6 lg:space-y-8">
         {/* Progress Bar */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
              <div className="flex justify-between items-center relative">
@@ -538,16 +538,16 @@ _Please confirm availability._
                      <div key={step.id} className="relative z-10 flex flex-col items-center group cursor-pointer" onClick={() => idx < currentStep && setCurrentStep(idx)}>
                          <div 
                              className={cn(
-                                 "w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all duration-300 border-4",
+                                 "w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all duration-300 border-[3px] sm:border-4",
                                  isActive 
                                      ? "bg-white border-[#00B4D8] text-[#00B4D8] shadow-md scale-110" 
                                      : "bg-gray-50 border-gray-200 text-gray-400"
                               )}
                          >
-                             {isCompleted ? <Check className="w-5 h-5 sm:w-6 sm:h-6" /> : <Icon className="w-4 h-4 sm:w-5 sm:h-5" />}
+                             {isCompleted ? <Check className="w-4 h-4 sm:w-6 sm:h-6" /> : <Icon className="w-4 h-4 sm:w-5 sm:h-5" />}
                          </div>
                          <span className={cn(
-                             "mt-3 text-xs sm:text-sm font-medium transition-colors duration-300",
+                             "mt-2 sm:mt-3 text-[10px] sm:text-sm font-medium transition-colors duration-300 text-center max-w-[65px] sm:max-w-none leading-tight",
                              isActive ? "text-gray-900 font-bold" : "text-gray-400"
                          )}>
                              {step.title}
@@ -558,50 +558,50 @@ _Please confirm availability._
         </div>
 
         <Card className="min-h-[500px] border-none shadow-xl shadow-gray-200/50 overflow-hidden ring-1 ring-gray-100">
-          <CardHeader className="bg-gray-50/50 border-b border-gray-100 pb-8">
-            <CardTitle className="text-2xl font-bold flex items-center gap-2">
+          <CardHeader className="bg-gray-50/50 border-b border-gray-100 p-5 sm:p-8 pb-6 sm:pb-8">
+            <CardTitle className="text-xl sm:text-2xl font-bold flex items-center gap-2">
                 {STEPS[currentStep].title}
             </CardTitle>
-            <CardDescription className="text-base text-gray-500 mt-2">
+            <CardDescription className="text-sm sm:text-base text-gray-500 mt-2">
               {currentStep === 0 && <span className="block mb-2">{service.description}</span>}
               Please fill in all the required details below to proceed.
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-8">
+          <CardContent className="p-5 sm:p-8">
             {currentStep === 0 && renderServiceStep()}
             {currentStep === 1 && renderAddressStep()}
             {currentStep === 2 && renderScheduleStep()}
             {currentStep === 3 && renderContactStep()}
           </CardContent>
-          <CardFooter className="bg-gray-50 p-6 flex justify-between border-t border-gray-100">
+          <CardFooter className="bg-gray-50 p-5 sm:p-6 flex justify-between border-t border-gray-100 gap-4 mt-auto">
             <Button
               variant="ghost"
               onClick={handleBack}
               disabled={currentStep === 0}
-              className="text-gray-500 hover:text-gray-900 hover:bg-gray-200/50 -ml-2"
+              className="text-gray-500 hover:text-gray-900 hover:bg-gray-200/50 -ml-2 sm:-ml-2 px-2 sm:px-4 text-xs sm:text-sm"
             >
-              <ChevronLeft className="w-4 h-4 mr-2" />
+              <ChevronLeft className="w-4 h-4 mr-1 sm:mr-2" />
               Back
             </Button>
             <Button
               onClick={handleNext}
               size="lg"
               className={cn(
-                  "rounded-full px-8 shadow-lg transition-transform hover:scale-105 active:scale-95 text-white border-0",
+                  "rounded-full px-4 sm:px-8 shadow-lg transition-transform hover:scale-105 active:scale-95 text-white border-0 text-xs sm:text-sm h-10 sm:h-11",
                   currentStep === STEPS.length - 1 
                     ? "bg-[#7B2D8B] hover:bg-[#6a2578]" // Confirm Color
                     : "bg-[#00B4D8] hover:bg-[#009bb8]"  // Next Color
               )}
             >
-              {currentStep === STEPS.length - 1 ? "Confirm Booking" : "Continue"}
-              {currentStep !== STEPS.length - 1 && <ChevronRight className="w-4 h-4 ml-2" />}
+              {currentStep === STEPS.length - 1 ? "Confirm" : "Continue"}
+              {currentStep !== STEPS.length - 1 && <ChevronRight className="w-4 h-4 ml-1 sm:ml-2" />}
             </Button>
           </CardFooter>
         </Card>
       </div>
 
       {/* ── Summary Sidebar (Sticky) ── */}
-      <div className="hidden xl:block xl:col-span-4 sticky top-24 space-y-6">
+      <div className="w-full lg:col-span-4 space-y-6 lg:sticky lg:top-24 mt-8 lg:mt-0">
         <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 ring-1 ring-gray-100 overflow-hidden">
             <div className="bg-[#0D0D1A] p-6 text-white text-center relative overflow-hidden">
                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B4D8] rounded-full blur-3xl opacity-20 -mr-10 -mt-10" />

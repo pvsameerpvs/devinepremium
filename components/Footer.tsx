@@ -12,7 +12,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
           {/* 1. Brand & Description */}
           <div className="space-y-6">
-            <Link href="/" className="inline-block">
+            <Link href="https://devinepremierservices.ae" className="inline-block">
                <div className="bg-white p-2 rounded-lg inline-block">
                   <Image
                     src="/logo.png"
@@ -36,10 +36,10 @@ export function Footer() {
               <span className="absolute -bottom-2 left-0 w-8 h-1 bg-[#7B2D8B] rounded-full"></span>
             </h3>
             <ul className="space-y-4">
-              {['Home', 'About Us', 'Our Services', 'Contact Us'].map((item) => (
+              {['Home', 'About Us', 'Contact Us'].map((item) => (
                 <li key={item}>
                   <Link 
-                    href={item === 'Home' ? '/' : item === 'Our Services' ? '/#services' : `/${item.toLowerCase().replace(' ', '-')}`}
+                    href={item === 'Home' ? 'https://devinepremierservices.ae' : `https://devinepremierservices.ae/${item.toLowerCase().replace(' ', '-')}/`}
                     className="text-gray-400 hover:text-white hover:translate-x-1 transition-all inline-flex items-center gap-2 text-sm"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-[#00B4D8]"></span>
