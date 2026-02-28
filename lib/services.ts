@@ -3,6 +3,7 @@ export interface ServiceOption {
   id: string;
   label: string;
   price?: number;
+  min?: number;
   type: "checkbox" | "radio" | "quantity" | "select";
   options?: { label: string; value: string; price?: number }[];
   defaultValue?: any;
@@ -62,12 +63,14 @@ export const SERVICES: Service[] = [
         label: "How Many Crew?",
         type: "quantity",
         defaultValue: 1,
+        min: 1,
       },
       {
         id: "hours",
         label: "Hours",
         type: "quantity",
         defaultValue: 4,
+        min: 2,
       },
       {
         id: "extras",
@@ -419,7 +422,8 @@ export const SERVICES: Service[] = [
           label: "How many Hours? (200 AED/hr)",
           type: "quantity",
           price: 200,
-          defaultValue: 5
+          defaultValue: 5,
+          min: 2
       }
     ]
   },
@@ -460,7 +464,8 @@ export const SERVICES: Service[] = [
             label: "Duration (Hours) - 100 AED/hr",
             type: "quantity",
             price: 100,
-            defaultValue: 0
+            defaultValue: 2,
+            min: 2
         }
     ]
   }

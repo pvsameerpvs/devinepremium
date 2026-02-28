@@ -46,8 +46,16 @@ const STEPS = [
 export function BookingStepper({ service }: BookingStepperProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // Pre-seed serviceOptions with each option's defaultValue so pricing is correct from the start
+  const initialServiceOptions = service.options.reduce((acc, opt) => {
+    if (opt.defaultValue !== undefined) {
+      acc[opt.id] = opt.defaultValue;
+    }
+    return acc;
+  }, {} as Record<string, any>);
+
   const [formData, setFormData] = useState<any>({
-    serviceOptions: {},
+    serviceOptions: initialServiceOptions,
     address: {
       location: "",
       building: "",
@@ -279,33 +287,42 @@ _Please confirm availability._
             )}
 
             {opt.type === "quantity" && (
-                <div className="flex items-center justify-between sm:justify-start p-4 bg-gray-50 rounded-xl border border-gray-200 w-full sm:w-fit">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between sm:justify-start p-4 bg-gray-50 rounded-xl border border-gray-200 w-full sm:w-fit">
                     <Button
                         variant="outline"
                         size="icon"
-                        className="h-10 w-10 rounded-full border-gray-300 hover:border-[#00B4D8] hover:text-[#00B4D8]"
+                        className="h-10 w-10 rounded-full border-gray-300 hover:border-[#00B4D8] hover:text-[#00B4D8] disabled:opacity-40"
+                        disabled={(formData.serviceOptions[opt.id] ?? opt.defaultValue ?? 0) <= (opt.min ?? 0)}
                         onClick={() => {
-                        const current = formData.serviceOptions[opt.id] || 0;
-                        if (current > 0) updateServiceOption(opt.id, current - 1);
+                        const current = formData.serviceOptions[opt.id] ?? opt.defaultValue ?? 0;
+                        const minVal = opt.min ?? 0;
+                        if (current > minVal) updateServiceOption(opt.id, current - 1);
                         }}
                     >
                         <Minus className="h-4 w-4" />
                     </Button>
                     <div className="mx-6 text-center">
-                         <span className="block text-2xl font-bold text-gray-900">{formData.serviceOptions[opt.id] || 0}</span>
-                         <span className="text-xs text-muted-foreground uppercase tracking-wider">Count</span>
+                         <span className="block text-2xl font-bold text-gray-900">{formData.serviceOptions[opt.id] ?? opt.defaultValue ?? 0}</span>
+                         <span className="text-xs text-muted-foreground uppercase tracking-wider">{opt.id === 'hours' ? 'Hours' : 'Count'}</span>
                     </div>
                     <Button
                         variant="outline"
                         size="icon"
                         className="h-10 w-10 rounded-full border-gray-300 hover:border-[#00B4D8] hover:text-[#00B4D8]"
                         onClick={() => {
-                        const current = formData.serviceOptions[opt.id] || 0;
+                        const current = formData.serviceOptions[opt.id] ?? opt.defaultValue ?? 0;
                         updateServiceOption(opt.id, current + 1);
                         }}
                     >
                         <Plus className="h-4 w-4" />
                     </Button>
+                  </div>
+                  {opt.id === 'hours' && opt.min && (
+                    <p className="text-xs text-amber-600 font-medium flex items-center gap-1">
+                      ⏱ Minimum booking: {opt.min} hours
+                    </p>
+                  )}
                 </div>
             )}
 
