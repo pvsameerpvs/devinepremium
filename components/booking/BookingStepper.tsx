@@ -60,7 +60,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
       location: "",
       building: "",
       apartment: "",
-      city: "Dubai",
+      city: "",
     },
     schedule: {
       date: undefined,
@@ -167,11 +167,15 @@ export function BookingStepper({ service }: BookingStepperProps) {
   };
 
   const handleWhatsAppSubmit = () => {
+      const breakdownText = lineItems.map(item => `🔹 ${item.label}`).join('\n');
       const message = `
 *New Booking Request - Devine Premier*
 ---------------------------
 *Service:* ${service.title}
 *Total Estimate:* ${total} AED
+
+*Service Details:*
+${breakdownText}
 
 *Schedule:*
 📅 Date: ${formData.schedule.date ? format(formData.schedule.date, "PPP") : "Not Set"}
@@ -653,7 +657,11 @@ _Please confirm availability._
             
             <div className="bg-gray-50 p-4 border-t border-gray-100 text-center">
                  <p className="text-xs font-semibold text-gray-500">Need Help? Call Us</p>
-                 <a href="tel:+971563758229" className="text-[#7B2D8B] font-bold text-lg hover:underline">+971 56 375 8229</a>
+                 <div className="flex flex-col items-center gap-2">
+                     <a href="tel:+971563758229" className="text-[#7B2D8B] font-bold text-lg hover:underline">+971 56 375 8229</a>
+                     <a href="tel:+971529769550" className="text-[#7B2D8B] font-bold text-lg hover:underline">+971 52 976 9550</a>
+                     <a href="tel:+971523960074" className="text-[#7B2D8B] font-bold text-lg hover:underline">+971 52 396 0074</a>
+                 </div>
             </div>
         </div>
 
