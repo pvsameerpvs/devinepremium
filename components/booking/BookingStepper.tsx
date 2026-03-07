@@ -36,6 +36,20 @@ interface BookingStepperProps {
   service: Service;
 }
 
+const VAT_RATE = 0.05;
+
+function round2(n: number) {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+function formatAED(n: number) {
+  const v = round2(n);
+  return v.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 const STEPS = [
   { id: "service", title: "Service Details", icon: CreditCard },
   { id: "address", title: "Address", icon: MapPin },
@@ -74,24 +88,47 @@ export function BookingStepper({ service }: BookingStepperProps) {
     },
   });
 
-  // Optimize total calculation with line items for summary
+  // Pricing: subtotal (ex VAT) -> discounts -> VAT -> grand total
   const calculateBreakdown = () => {
-      let total = 0; 
+      let subtotal = 0;
+      let discount = 0;
+      let discountLabel: string | null = null;
       const items: { label: string; amount: number }[] = [];
 
       // Special handling for maid cleaning to be more intuitive
-      if (service.id === 'maid-cleaning') {
-          const hours = Number(formData.serviceOptions['hours']) || 0;
-          const crew = Number(formData.serviceOptions['crew']) || 0;
-          
-          if (hours > 0 && crew > 0) {
-              const baseParamsTotal = hours * crew * service.basePrice;
-              total += baseParamsTotal;
-              items.push({ 
-                  label: `${crew} Cleaner(s) x ${hours} Hour(s) @ ${service.basePrice} AED/hr`, 
-                  amount: baseParamsTotal 
-              });
-          }
+       if (service.id === 'maid-cleaning') {
+           const hours = Number(formData.serviceOptions['hours']) || 0;
+           const crew = Number(formData.serviceOptions['crew']) || 0;
+           const frequency = String(formData.serviceOptions['frequency'] || "one-time");
+
+           const maidDiscountRateByFrequency: Record<string, number> = {
+             weekly: 0.05,
+             "2-times-weekly": 0.1,
+             "3-times-weekly": 0.15,
+             "4-times-weekly": 0.15,
+             "5-times-weekly": 0.15,
+             "6-times-weekly": 0.15,
+             "bi-weekly": 0.05,
+             "every-3-weeks": 0.05,
+             "every-4-weeks": 0.05,
+             "every-5-weeks": 0.05,
+             "every-6-weeks": 0.05,
+           };
+           const maidDiscountRate = maidDiscountRateByFrequency[frequency] || 0;
+            
+           if (hours > 0 && crew > 0) {
+               const laborTotal = hours * crew * service.basePrice;
+               subtotal += laborTotal;
+               items.push({ 
+                   label: `${crew} Cleaner(s) x ${hours} Hour(s) @ ${service.basePrice} AED/hr`, 
+                   amount: laborTotal 
+               });
+
+               if (maidDiscountRate > 0) {
+                 discount += laborTotal * maidDiscountRate;
+                 discountLabel = `Offer (${Math.round(maidDiscountRate * 100)}%)`;
+               }
+           }
 
           const extras = formData.serviceOptions['extras'] || [];
             // Assuming options structure has prices for extras
@@ -101,62 +138,74 @@ export function BookingStepper({ service }: BookingStepperProps) {
                 extras.forEach((val: string) => {
                     const item = extraOpt.options?.find(o => o.value === val);
                     const price = item?.price || (val === 'supplies' ? 10 : 0); // Fallback for hardcoded
-                     if (price > 0) {
-                         total += price;
-                         items.push({ label: item?.label || val, amount: price });
-                     }
-                });
-            }
-      } else {
-        // Generic Service Logic
-        // Only add base price if it's a fixed fee, not a "starting from" placeholder or per-unit rate
-        if (service.basePrice > 0 && service.priceUnit !== 'starting from' && service.priceUnit !== '/hr') {
-            total += service.basePrice;
+                      if (price > 0) {
+                          subtotal += price;
+                          items.push({ label: item?.label || val, amount: price });
+                      }
+                 });
+             }
+       } else {
+         // Generic Service Logic
+         // Only add base price if it's a fixed fee, not a "starting from" placeholder or per-unit rate
+         if (service.basePrice > 0 && service.priceUnit !== 'starting from' && service.priceUnit !== '/hr') {
+            subtotal += service.basePrice;
             items.push({ label: "Base Price", amount: service.basePrice });
-        }
+         }
 
         service.options.forEach(opt => {
          const val = formData.serviceOptions[opt.id];
          if (val) {
              if (opt.type === 'quantity' && opt.price) {
                  const qty = Number(val);
-                 if (qty > 0) {
-                    const lineTotal = qty * opt.price;
-                    total += lineTotal;
-                    items.push({ label: `${opt.label} (x${qty})`, amount: lineTotal });
-                 }
-             }
-             else if (opt.type === 'checkbox' && Array.isArray(val) && opt.options) {
-                  val.forEach((s: string) => {
-                      const o = opt.options?.find(x => x.value === s);
-                      if (o && o.price) {
-                          total += o.price;
-                          items.push({ label: o.label, amount: o.price });
-                      }
-                  });
-             }
-             else if (opt.type === 'select' && opt.options) {
+                  if (qty > 0) {
+                     const lineTotal = qty * opt.price;
+                     subtotal += lineTotal;
+                     items.push({ label: `${opt.label} (x${qty})`, amount: lineTotal });
+                  }
+              }
+              else if (opt.type === 'checkbox' && Array.isArray(val) && opt.options) {
+                   val.forEach((s: string) => {
+                       const o = opt.options?.find(x => x.value === s);
+                       if (o && o.price) {
+                           subtotal += o.price;
+                           items.push({ label: o.label, amount: o.price });
+                       }
+                   });
+              }
+              else if (opt.type === 'select' && opt.options) {
+                  const o = opt.options.find(x => x.value === val);
+                  if (o && o.price) {
+                     // If select overrides base label
+                     subtotal += o.price;
+                     items.push({ label: o.label, amount: o.price });
+                  }
+              }
+              else if (opt.type === 'radio' && opt.options) {
                  const o = opt.options.find(x => x.value === val);
                  if (o && o.price) {
-                    // If select overrides base label
-                    items.push({ label: o.label, amount: o.price });
+                     subtotal += o.price;
+                     items.push({ label: o.label, amount: o.price });
                  }
-             }
-             else if (opt.type === 'radio' && opt.options) {
-                const o = opt.options.find(x => x.value === val);
-                if (o && o.price) {
-                    total += o.price;
-                    items.push({ label: o.label, amount: o.price });
-                }
-             }
-         }
-        });
-      }
+              }
+          }
+         });
+       }
 
-      return { total, items };
-  };
+       const discountRounded = round2(discount);
+       const taxable = Math.max(0, subtotal - discountRounded);
+       const vat = round2(taxable * VAT_RATE);
+       const total = round2(taxable + vat);
 
-  const { total, items: lineItems } = calculateBreakdown();
+       const finalItems = [...items];
+       if (discountRounded > 0) {
+         finalItems.push({ label: discountLabel || "Discount", amount: -discountRounded });
+       }
+       finalItems.push({ label: `VAT (${Math.round(VAT_RATE * 100)}%)`, amount: vat });
+
+       return { subtotal: round2(subtotal), discount: discountRounded, vat, total, items: finalItems };
+   };
+
+  const { total, items: lineItems, subtotal, discount, vat } = calculateBreakdown();
 
   const handleNext = () => {
     if (currentStep < STEPS.length - 1) {
@@ -167,12 +216,18 @@ export function BookingStepper({ service }: BookingStepperProps) {
   };
 
   const handleWhatsAppSubmit = () => {
-      const breakdownText = lineItems.map(item => `🔹 ${item.label}`).join('\n');
+      const breakdownText = lineItems
+        .filter((item) => item.label !== "Discount" && !item.label.startsWith("VAT"))
+        .map((item) => `🔹 ${item.label}: ${formatAED(item.amount)} AED`)
+        .join("\n");
+      const discountLine = discount > 0 ? `*Discount:* -${formatAED(discount)} AED\n` : "";
       const message = `
 *New Booking Request - Devine Premier*
 ---------------------------
 *Service:* ${service.title}
-*Total Estimate:* ${total} AED
+*Subtotal:* ${formatAED(subtotal)} AED
+${discountLine}*VAT (5%):* ${formatAED(vat)} AED
+*Total Estimate:* ${formatAED(total)} AED
 
 *Service Details:*
 ${breakdownText}
@@ -282,11 +337,11 @@ _Please confirm availability._
                   </SelectContent>
                 </Select>
                 {/* Discount Helper Text for Maid Cleaning Frequency */}
-                {service.id === 'maid-cleaning' && opt.id === 'frequency' && (
-                    <p className="text-sm text-[#00B4D8] font-medium mt-1 ml-1 flex items-center gap-1">
-                        Get Discounted Rates for frequent bookings ✨
-                    </p>
-                )}
+                 {service.id === 'maid-cleaning' && opt.id === 'frequency' && (
+                     <p className="text-sm text-[#00B4D8] font-medium mt-1 ml-1 flex items-center gap-1">
+                         Offers: weekly 5%, 2x/week 10%, 3+/week 15%, every 3-6 weeks 5%
+                     </p>
+                 )}
               </>
             )}
 
@@ -371,27 +426,27 @@ _Please confirm availability._
         </div>
         
         {/* Total Display Inside Step 1 - Per User Request */}
-        <div className="mt-8 p-6 bg-slate-900 rounded-xl text-white flex flex-col sm:flex-row justify-between items-center shadow-lg border border-slate-700">
-             <div className="mb-4 sm:mb-0">
-                 <p className="text-sm text-slate-400 uppercase tracking-widest font-semibold">Estimated Total</p>
-                 <div className="flex items-baseline gap-2">
-                    <p className="text-4xl font-bold text-[#00B4D8]">{total}</p>
-                    <span className="text-lg font-medium text-slate-300">AED</span>
-                 </div>
-                 <p className="text-xs text-slate-500 mt-1">Includes all selected options</p>
-             </div>
+         <div className="mt-8 p-6 bg-slate-900 rounded-xl text-white flex flex-col sm:flex-row justify-between items-center shadow-lg border border-slate-700">
+              <div className="mb-4 sm:mb-0">
+                  <p className="text-sm text-slate-400 uppercase tracking-widest font-semibold">Estimated Total</p>
+                  <div className="flex items-baseline gap-2">
+                     <p className="text-4xl font-bold text-[#00B4D8]">{formatAED(total)}</p>
+                     <span className="text-lg font-medium text-slate-300">AED</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">Includes selected options + 5% VAT</p>
+              </div>
              
              {/* Mini Breakdown for clarity */}
              <div className="text-sm text-slate-300 space-y-1 text-right hidden sm:block">
-                 {lineItems.slice(0, 3).map((item, i) => (
-                     <div key={i} className="flex justify-end gap-3 text-slate-400">
-                         <span>{item.label}:</span>
-                         <span className="text-slate-200">{item.amount}</span>
-                     </div>
-                 ))}
-                 {lineItems.length > 3 && <div className="text-slate-500">+ {lineItems.length - 3} more items...</div>}
-             </div>
-        </div>
+                  {lineItems.slice(0, 3).map((item, i) => (
+                      <div key={i} className="flex justify-end gap-3 text-slate-400">
+                          <span>{item.label}:</span>
+                          <span className="text-slate-200">{formatAED(item.amount)}</span>
+                      </div>
+                  ))}
+                  {lineItems.length > 3 && <div className="text-slate-500">+ {lineItems.length - 3} more items...</div>}
+              </div>
+         </div>
       </div>
     );
   };
@@ -633,21 +688,21 @@ _Please confirm availability._
             <div className="p-6 space-y-6">
                 {/* Line Items */}
                 <div className="space-y-3">
-                    {lineItems.length > 0 ? lineItems.map((item, i) => (
-                        <div key={i} className="flex justify-between text-sm py-2 border-b border-gray-50 last:border-0">
-                            <span className="text-gray-600 max-w-[70%]">{item.label}</span>
-                            <span className="font-semibold text-gray-900">{item.amount} AED</span>
-                        </div>
-                    )) : (
-                        <p className="text-sm text-muted-foreground text-center py-4 italic">Select options to see price breakdown</p>
-                    )}
-                </div>
+                     {lineItems.length > 0 ? lineItems.map((item, i) => (
+                         <div key={i} className="flex justify-between text-sm py-2 border-b border-gray-50 last:border-0">
+                             <span className="text-gray-600 max-w-[70%]">{item.label}</span>
+                             <span className="font-semibold text-gray-900">{formatAED(item.amount)} AED</span>
+                         </div>
+                     )) : (
+                         <p className="text-sm text-muted-foreground text-center py-4 italic">Select options to see price breakdown</p>
+                     )}
+                 </div>
 
                 {/* Total */}
-                <div className="bg-gray-50 rounded-xl p-4 flex justify-between items-center border border-gray-100">
-                     <span className="text-gray-600 font-medium">Total Estimate</span>
-                     <span className="text-2xl font-bold text-[#00B4D8]">{total} <span className="text-xs text-gray-400 font-normal">AED</span></span>
-                </div>
+                 <div className="bg-gray-50 rounded-xl p-4 flex justify-between items-center border border-gray-100">
+                      <span className="text-gray-600 font-medium">Total Estimate</span>
+                      <span className="text-2xl font-bold text-[#00B4D8]">{formatAED(total)} <span className="text-xs text-gray-400 font-normal">AED</span></span>
+                 </div>
 
                 {/* Info */}
                 <div className="text-xs text-gray-400 text-center px-4 leading-relaxed">
@@ -722,8 +777,8 @@ _Please confirm availability._
 
                <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
                     <span className="font-semibold text-gray-700">Total Estimate</span>
-                    <span className="text-xl font-bold text-[#00B4D8]">{total} AED</span>
-               </div>
+                     <span className="text-xl font-bold text-[#00B4D8]">{formatAED(total)} AED</span>
+                </div>
             </div>
 
             <div className="p-6 bg-gray-50 border-t border-gray-100 flex gap-3">

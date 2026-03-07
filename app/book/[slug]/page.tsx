@@ -3,8 +3,8 @@ import { getServiceBySlug, SERVICES } from "@/lib/services";
 import { notFound } from "next/navigation";
 import { BookingStepper } from "@/components/booking/BookingStepper";
 import Link from "next/link";
-import Image from "next/image";
 import { Footer } from "@/components/Footer";
+import { SiteHeader } from "@/components/SiteHeader";
 
 interface PageProps {
   params: Promise<{
@@ -28,51 +28,32 @@ export default async function BookServicePage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Header ── */}
-      <header className="bg-white border-b border-border shadow-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <Link href="https://devinepremierservices.ae" className="flex items-center gap-3">
-            <Image
-              src="/logo.png"
-              alt="Devine Premier Technical Services"
-              width={56}
-              height={56}
-              className="object-contain"
-              priority
-            />
-            <div className="hidden sm:block">
-              <p className="text-xs font-bold tracking-widest uppercase leading-none" style={{ color: "#7B2D8B" }}>
-                Devine Premier
-              </p>
-              <p className="text-[10px] tracking-widest uppercase text-gray-500 leading-none mt-0.5">
-                Technical Services
-              </p>
-            </div>
-          </Link>
-          <Link
-            href="https://devinepremierservices.ae"
-            className="text-sm text-muted-foreground hover:text-[#00B4D8] transition-colors"
-          >
-          Home
-          </Link>
-          
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* ── Page Title Banner ── */}
-      <div className="py-10 px-4 text-center relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0D0D1A 0%, #1a0a2e 60%, #0a1a2e 100%)" }}>
-        <div className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-10 blur-3xl" style={{ background: "#00B4D8" }} />
-        <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full opacity-10 blur-3xl" style={{ background: "#7B2D8B" }} />
+      <div className="py-10 px-4 text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-secondary/10" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.06)_1px,transparent_0)] [background-size:18px_18px] opacity-40" />
         <div className="relative z-10">
-          <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: "#00B4D8" }}>
+          <p className="text-xs font-semibold tracking-widest uppercase mb-2 text-primary">
             Book a Service
           </p>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-white">
+          <h1 className="text-3xl md:text-4xl font-extrabold">
             {service.title}
           </h1>
           {service.description && (
-            <p className="text-gray-300 mt-2 max-w-xl mx-auto text-sm">{service.description}</p>
+            <p className="text-muted-foreground mt-2 max-w-xl mx-auto text-sm">
+              {service.description}
+            </p>
           )}
+          <div className="mt-4">
+            <Link
+              href="/"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Back to Home
+            </Link>
+          </div>
         </div>
       </div>
 

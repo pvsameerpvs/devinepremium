@@ -40,7 +40,7 @@ export const SERVICES: Service[] = [
     options: [
       {
         id: "frequency",
-        label: "Select your booking frequency",
+        label: "Select your booking frequency (offers for recurring bookings)",
         type: "select",
         options: [
           { label: "One Time", value: "one-time" },
@@ -60,7 +60,7 @@ export const SERVICES: Service[] = [
       },
       {
         id: "crew",
-        label: "How Many Crew?",
+        label: "Number of cleaners (35 AED/hr each)",
         type: "quantity",
         defaultValue: 1,
         min: 1,
