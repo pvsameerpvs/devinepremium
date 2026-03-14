@@ -264,7 +264,7 @@ export const SERVICES: Service[] = [
     options: [
         {
             id: "type",
-            label: "Property Type",
+            label: "Service Type",
             type: "select",
             options: [
                 { label: "Studio (399 AED)", value: "studio", price: 399 },
@@ -276,6 +276,8 @@ export const SERVICES: Service[] = [
                 { label: "3 BHK Villa (1199 AED)", value: "3bhk-villa", price: 1199 },
                 { label: "4 BHK Villa (1499 AED)", value: "4bhk-villa", price: 1499 },
                 { label: "5 BHK Villa (1799 AED)", value: "5bhk-villa", price: 1799 },
+                { label: "Small Bathroom Deep Cleaning (199 AED)", value: "small-bathroom", price: 199 },
+                { label: "Large Bathroom / Master Deep Cleaning (249 AED)", value: "large-bathroom", price: 249 },
             ],
             defaultValue: "studio"
         }
@@ -360,36 +362,6 @@ export const SERVICES: Service[] = [
             label: "King Mattress (199 AED)",
             type: "quantity",
             price: 199,
-            defaultValue: 0
-        }
-    ]
-  },
-  {
-    id: "bathroom-deep-cleaning",
-    slug: "bathroom-deep-cleaning",
-    title: "Bathroom Deep Cleaning",
-    basePrice: 199,
-    priceUnit: "starting from",
-    expectations: [
-        "Tile and grout scrubbing and whitening",
-        "Sanitization of toilet, sink, and bathtub",
-        "Mirror and glass polishing",
-        "Chrome fixture descaling and polishing",
-        "Drain unclogging and deodorizing"
-    ],
-    options: [
-        {
-            id: "small-bathroom",
-            label: "Small Bathroom (199 AED)",
-            type: "quantity",
-            price: 199,
-            defaultValue: 0
-        },
-        {
-            id: "large-bathroom",
-            label: "Large Bathroom / Master (249 AED)",
-            type: "quantity",
-            price: 249,
             defaultValue: 0
         }
     ]
