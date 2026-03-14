@@ -395,6 +395,34 @@ export const SERVICES: Service[] = [
     ]
   },
   {
+    id: "ac-services",
+    slug: "ac-services",
+    title: "AC Services",
+    basePrice: 0,
+    priceUnit: "based on selection",
+    expectations: [
+        "Filter cleaning and full airflow check",
+        "Coil and drain line cleaning",
+        "Cooling performance and thermostat testing",
+        "Minor leak/issue diagnostics",
+        "Post-service testing and report"
+    ],
+    options: [
+      {
+        id: "service-type",
+        label: "Select AC Service Type",
+        type: "select",
+        options: [
+          { label: "AC General Service (149 AED)", value: "ac-general-service", price: 149 },
+          { label: "AC Deep Cleaning (249 AED)", value: "ac-deep-cleaning", price: 249 },
+          { label: "AC Gas Top-Up (299 AED)", value: "ac-gas-top-up", price: 299 },
+          { label: "AC Inspection / Diagnosis (99 AED)", value: "ac-inspection", price: 99 }
+        ],
+        defaultValue: "ac-general-service"
+      }
+    ]
+  },
+  {
     id: "renovation-services",
     slug: "renovation-services",
     title: "Renovation Services",
