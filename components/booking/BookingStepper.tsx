@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import Script from "next/script";
 import { Service, ServiceOption } from "@/lib/services";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +37,28 @@ interface BookingStepperProps {
   service: Service;
 }
 
+declare global {
+  interface Window {
+    L?: any;
+  }
+}
+
+interface PlaceSearchResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+  address?: {
+    city?: string;
+    town?: string;
+    village?: string;
+    state?: string;
+    suburb?: string;
+    neighbourhood?: string;
+    road?: string;
+    house_number?: string;
+  };
+}
+
 const VAT_RATE = 0.05;
 
 function round2(n: number) {
@@ -60,6 +83,16 @@ const STEPS = [
 export function BookingStepper({ service }: BookingStepperProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+  const [isLeafletReady, setIsLeafletReady] = useState(false);
+  const [locationError, setLocationError] = useState("");
+  const [placeQuery, setPlaceQuery] = useState("");
+  const [placeResults, setPlaceResults] = useState<PlaceSearchResult[]>([]);
+  const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
+  const [placeSearchError, setPlaceSearchError] = useState("");
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const leafletMapRef = useRef<any>(null);
+  const leafletPinRef = useRef<any>(null);
   // Pre-seed serviceOptions with each option's defaultValue so pricing is correct from the start
   const initialServiceOptions = service.options.reduce((acc, opt) => {
     if (opt.defaultValue !== undefined) {
@@ -75,6 +108,9 @@ export function BookingStepper({ service }: BookingStepperProps) {
       building: "",
       apartment: "",
       city: "",
+      mapLink: "",
+      lat: "",
+      lng: "",
     },
     schedule: {
       date: undefined,
@@ -206,6 +242,257 @@ export function BookingStepper({ service }: BookingStepperProps) {
    };
 
   const { total, items: lineItems, subtotal, discount, vat } = calculateBreakdown();
+  const addressSummary = [
+    formData.address.building,
+    formData.address.apartment,
+    formData.address.location,
+    formData.address.city,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const hasPinnedCoords =
+    Number.isFinite(Number(formData.address.lat)) && Number.isFinite(Number(formData.address.lng));
+
+  const buildMapLink = (lat: string, lng: string) =>
+    `https://www.google.com/maps?q=${lat},${lng}`;
+
+  const parseCoordsFromMapLink = (value: string) => {
+    if (!value) return null;
+    const qParamMatch = value.match(/[?&]q=([-0-9.]+),([-0-9.]+)/i);
+    if (qParamMatch) {
+      return { lat: qParamMatch[1], lng: qParamMatch[2] };
+    }
+    const atParamMatch = value.match(/@([-0-9.]+),([-0-9.]+)/i);
+    if (atParamMatch) {
+      return { lat: atParamMatch[1], lng: atParamMatch[2] };
+    }
+    return null;
+  };
+
+  const reverseGeocodeAndFillAddress = async (latRaw: string, lngRaw: string) => {
+    const lat = Number(latRaw).toFixed(6);
+    const lng = Number(lngRaw).toFixed(6);
+    const mapLink = buildMapLink(lat, lng);
+
+    let locationText = `${lat}, ${lng}`;
+    let detectedCity = "";
+    let detectedBuilding = "";
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        const address = data?.address || {};
+
+        locationText =
+          address?.suburb ||
+          address?.neighbourhood ||
+          address?.road ||
+          data?.display_name ||
+          locationText;
+        detectedCity = address?.city || address?.town || address?.village || address?.state || "";
+        detectedBuilding = address?.house_number
+          ? `${address.house_number} ${address?.road || ""}`.trim()
+          : "";
+      }
+    } catch {
+      // Use coordinate fallback if reverse geocode API is unavailable.
+    }
+
+    setFormData((prev: any) => ({
+      ...prev,
+      address: {
+        ...prev.address,
+        location: locationText,
+        city: detectedCity,
+        building: detectedBuilding,
+        mapLink,
+        lat,
+        lng,
+      },
+    }));
+  };
+
+  useEffect(() => {
+    const existing = document.getElementById("leaflet-css");
+    if (existing) return;
+
+    const link = document.createElement("link");
+    link.id = "leaflet-css";
+    link.rel = "stylesheet";
+    link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+    document.head.appendChild(link);
+  }, []);
+
+  useEffect(() => {
+    if (
+      currentStep !== 1 ||
+      !isLeafletReady ||
+      !mapContainerRef.current ||
+      leafletMapRef.current ||
+      !window.L
+    ) {
+      return;
+    }
+
+    const L = window.L;
+    const initialLat = Number(formData.address.lat) || 25.2048;
+    const initialLng = Number(formData.address.lng) || 55.2708;
+
+    const map = L.map(mapContainerRef.current, {
+      center: [initialLat, initialLng],
+      zoom: 12,
+    });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap contributors",
+    }).addTo(map);
+
+    const pin = L.circleMarker([initialLat, initialLng], {
+      radius: 8,
+      color: "#ffffff",
+      weight: 2,
+      fillColor: "#00B4D8",
+      fillOpacity: 0.95,
+    }).addTo(map);
+
+    map.on("click", async (event: any) => {
+      const lat = Number(event.latlng.lat).toFixed(6);
+      const lng = Number(event.latlng.lng).toFixed(6);
+      pin.setLatLng([lat, lng]);
+      await reverseGeocodeAndFillAddress(lat, lng);
+      setLocationError("");
+      setPlaceResults([]);
+      setPlaceSearchError("");
+    });
+
+    leafletMapRef.current = map;
+    leafletPinRef.current = pin;
+
+    return () => {
+      map.remove();
+      leafletMapRef.current = null;
+      leafletPinRef.current = null;
+    };
+  }, [isLeafletReady, currentStep]);
+
+  useEffect(() => {
+    const map = leafletMapRef.current;
+    const pin = leafletPinRef.current;
+    const lat = Number(formData.address.lat);
+    const lng = Number(formData.address.lng);
+    if (!map || !pin || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return;
+    }
+
+    pin.setLatLng([lat, lng]);
+    map.setView([lat, lng], Math.max(map.getZoom(), 14));
+  }, [formData.address.lat, formData.address.lng]);
+
+  const handleSelectPlaceResult = (place: PlaceSearchResult) => {
+    const lat = Number(place.lat).toFixed(6);
+    const lng = Number(place.lon).toFixed(6);
+    const area =
+      place.address?.suburb ||
+      place.address?.neighbourhood ||
+      place.address?.road ||
+      place.display_name;
+    const detectedCity =
+      place.address?.city ||
+      place.address?.town ||
+      place.address?.village ||
+      place.address?.state ||
+      "";
+    const detectedBuilding = place.address?.house_number
+      ? `${place.address.house_number} ${place.address?.road || ""}`.trim()
+      : "";
+
+    setFormData((prev: any) => ({
+      ...prev,
+      address: {
+        ...prev.address,
+        location: area,
+        city: prev.address.city || detectedCity,
+        building: prev.address.building || detectedBuilding,
+        mapLink: buildMapLink(lat, lng),
+        lat,
+        lng,
+      },
+    }));
+    setPlaceQuery(place.display_name);
+    setPlaceResults([]);
+    setPlaceSearchError("");
+    setLocationError("");
+  };
+
+  const handleSearchPlaces = async () => {
+    const query = placeQuery.trim();
+    if (query.length < 3) {
+      setPlaceSearchError("Type at least 3 characters to search places.");
+      setPlaceResults([]);
+      return;
+    }
+
+    setPlaceSearchError("");
+    setIsSearchingPlaces(true);
+
+    try {
+      const params = new URLSearchParams({
+        q: query,
+        format: "jsonv2",
+        addressdetails: "1",
+        limit: "6",
+        countrycodes: "ae",
+      });
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`);
+      if (!response.ok) {
+        throw new Error("Place search failed");
+      }
+
+      const data = (await response.json()) as PlaceSearchResult[];
+      setPlaceResults(Array.isArray(data) ? data : []);
+      if (!data.length) {
+        setPlaceSearchError("No places found. Try another area/building name.");
+      }
+    } catch {
+      setPlaceSearchError("Could not search places right now. Please try again.");
+      setPlaceResults([]);
+    } finally {
+      setIsSearchingPlaces(false);
+    }
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported on this browser.");
+      return;
+    }
+
+    setLocationError("");
+    setIsLocating(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = Number(position.coords.latitude).toFixed(6);
+        const lng = Number(position.coords.longitude).toFixed(6);
+        await reverseGeocodeAndFillAddress(lat, lng);
+        setIsLocating(false);
+      },
+      (error) => {
+        const messageByCode: Record<number, string> = {
+          1: "Location permission denied. Please allow location access.",
+          2: "Unable to detect your location. Try again.",
+          3: "Location request timed out. Please try again.",
+        };
+        setLocationError(messageByCode[error.code] || "Unable to fetch your location.");
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
 
   const handleNext = () => {
     if (currentStep < STEPS.length - 1) {
@@ -221,6 +508,9 @@ export function BookingStepper({ service }: BookingStepperProps) {
         .map((item) => `🔹 ${item.label}: ${formatAED(item.amount)} AED`)
         .join("\n");
       const discountLine = discount > 0 ? `*Discount:* -${formatAED(discount)} AED\n` : "";
+      const mapLine = formData.address.mapLink
+        ? `🗺 Map Pin: ${formData.address.mapLink}`
+        : "🗺 Map Pin: Not Shared";
       const message = `
 *New Booking Request - Devine Premier*
 ---------------------------
@@ -237,8 +527,8 @@ ${breakdownText}
 ⏰ Time: ${formData.schedule.timeSlot || "Not Set"}
 
 *Location:*
-📍 ${formData.address.building}, ${formData.address.apartment}
-🌍 ${formData.address.location}, ${formData.address.city}
+📍 ${addressSummary || "Not Set"}
+${mapLine}
 
 *Client Details:*
 👤 Name: ${formData.contact.fullName}
@@ -468,6 +758,53 @@ _Please confirm availability._
         </Select>
       </div>
       <div className="grid gap-2">
+        <Label htmlFor="placeSearch">Search Place & Pin on Map</Label>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Input
+            id="placeSearch"
+            placeholder="Search area, building, street..."
+            className="h-12"
+            value={placeQuery}
+            onChange={(e) => {
+              setPlaceQuery(e.target.value);
+              setPlaceSearchError("");
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSearchPlaces();
+              }
+            }}
+          />
+          <Button
+            type="button"
+            onClick={handleSearchPlaces}
+            disabled={isSearchingPlaces}
+            className="h-12 sm:min-w-[120px]"
+          >
+            {isSearchingPlaces ? "Searching..." : "Search"}
+          </Button>
+        </div>
+        {placeSearchError && (
+          <p className="text-sm text-red-600">{placeSearchError}</p>
+        )}
+        {placeResults.length > 0 && (
+          <div className="rounded-xl border border-gray-200 bg-white max-h-64 overflow-y-auto">
+            {placeResults.map((place) => (
+              <button
+                key={`${place.lat}-${place.lon}-${place.display_name}`}
+                type="button"
+                className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                onClick={() => handleSelectPlaceResult(place)}
+              >
+                <p className="text-sm font-medium text-gray-900 line-clamp-2">{place.display_name}</p>
+                <p className="text-xs text-gray-500 mt-1">Tap to pin this location</p>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="grid gap-2">
         <Label htmlFor="location">Area / Location</Label>
         <Input 
             id="location" 
@@ -476,6 +813,31 @@ _Please confirm availability._
             value={formData.address.location}
             onChange={(e) => setFormData({...formData, address: {...formData.address, location: e.target.value}})}
         />
+      </div>
+      <div className="grid gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 w-full sm:w-fit"
+          onClick={handleUseCurrentLocation}
+          disabled={isLocating}
+        >
+          <MapPin className="w-4 h-4 mr-2" />
+          {isLocating ? "Getting Your Location..." : "Use Current Location & Pin"}
+        </Button>
+        {formData.address.mapLink && (
+          <a
+            href={formData.address.mapLink}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm text-[#00B4D8] hover:underline"
+          >
+            Open map pin
+          </a>
+        )}
+        {locationError && (
+          <p className="text-sm text-red-600">{locationError}</p>
+        )}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="grid gap-2">
@@ -496,8 +858,70 @@ _Please confirm availability._
                 className="h-12"
                 value={formData.address.apartment}
                 onChange={(e) => setFormData({...formData, address: {...formData.address, apartment: e.target.value}})}
-             />
+            />
         </div>
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="mapLink">Google Map Link (Optional)</Label>
+        <Input
+          id="mapLink"
+          placeholder="https://www.google.com/maps?q=..."
+          className="h-12"
+          value={formData.address.mapLink}
+          onChange={(e) => {
+            const value = e.target.value;
+            const coords = parseCoordsFromMapLink(value);
+            setFormData({
+              ...formData,
+              address: {
+                ...formData.address,
+                mapLink: value,
+                lat: coords?.lat || formData.address.lat,
+                lng: coords?.lng || formData.address.lng,
+              },
+            });
+          }}
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label>Map Pin Selector (Click Map)</Label>
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50 aspect-video">
+          <div
+            ref={mapContainerRef}
+            className="h-full w-full"
+            aria-label="Interactive map. Click to pin and auto fill address."
+          />
+        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <p className={cn("text-xs", hasPinnedCoords ? "text-emerald-600" : "text-muted-foreground")}>
+            {hasPinnedCoords
+              ? `Pin selected: ${formData.address.lat}, ${formData.address.lng}`
+              : "No pin selected yet. Click on map to drop a pin."}
+          </p>
+          {hasPinnedCoords && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-8 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() =>
+                setFormData((prev: any) => ({
+                  ...prev,
+                  address: {
+                    ...prev.address,
+                    lat: "",
+                    lng: "",
+                    mapLink: "",
+                  },
+                }))
+              }
+            >
+              Clear Pin
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Click anywhere on the map to drop pin and auto fill address. You can also search place or use current location.
+        </p>
       </div>
     </div>
   );
@@ -597,6 +1021,11 @@ _Please confirm availability._
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+      <Script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        strategy="afterInteractive"
+        onLoad={() => setIsLeafletReady(true)}
+      />
       {/* ── Stepper Sidebar / Header (Responsive) ── */}
       <div className="lg:col-span-8 space-y-6 lg:space-y-8">
         {/* Progress Bar */}
@@ -765,8 +1194,18 @@ _Please confirm availability._
                 <div className="space-y-2">
                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Location</p>
                    <p className="font-medium text-gray-900 text-sm">
-                       {formData.address.building}, {formData.address.apartment}, {formData.address.location}, {formData.address.city}
+                       {addressSummary || "Not Set"}
                    </p>
+                   {formData.address.mapLink && (
+                     <a
+                       href={formData.address.mapLink}
+                       target="_blank"
+                       rel="noreferrer"
+                       className="text-sm text-[#00B4D8] hover:underline"
+                     >
+                       Open map pin
+                     </a>
+                   )}
                </div>
 
                <div className="space-y-2">
