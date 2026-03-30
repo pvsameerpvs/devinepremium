@@ -2,8 +2,13 @@ import { AppDataSource } from "../config/data-source";
 import { Booking } from "../entities/Booking";
 import { BookingStatusHistory } from "../entities/BookingStatusHistory";
 import { Payment } from "../entities/Payment";
+import { StaffMember } from "../entities/StaffMember";
 import { User } from "../entities/User";
 import { accountService } from "./accountService";
+import {
+  isStaffAvailableForDate,
+  staffService,
+} from "./staffService";
 import {
   BookingAddress,
   BookingChangeRequestStatus,
@@ -37,6 +42,7 @@ const paymentRepository = () => AppDataSource.getRepository(Payment);
 const statusHistoryRepository = () =>
   AppDataSource.getRepository(BookingStatusHistory);
 const userRepository = () => AppDataSource.getRepository(User);
+const staffRepository = () => AppDataSource.getRepository(StaffMember);
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -133,6 +139,8 @@ export const bookingService = {
       totalAmount: input.pricing.total,
       currency: "AED",
       userId: user.id,
+      assignedStaffId: null,
+      assignedAt: null,
     });
 
     const savedBooking = await bookingRepository().save(booking);
@@ -229,6 +237,7 @@ export const bookingService = {
     return bookingRepository()
       .createQueryBuilder("booking")
       .leftJoinAndSelect("booking.user", "user")
+      .leftJoinAndSelect("booking.assignedStaff", "assignedStaff")
       .leftJoinAndSelect("booking.payments", "payment")
       .leftJoinAndSelect("booking.statusHistory", "statusHistory")
       .orderBy("booking.createdAt", "DESC")
@@ -238,7 +247,10 @@ export const bookingService = {
   },
 
   async getAdminDashboard() {
-    const bookings = await this.listAdminBookings();
+    const [bookings, staffMembers] = await Promise.all([
+      this.listAdminBookings(),
+      staffService.listStaffMembers(),
+    ]);
     const summary = {
       totalBookings: bookings.length,
       pendingBookings: bookings.filter((booking) => booking.status === "pending")
@@ -265,7 +277,71 @@ export const bookingService = {
     return {
       summary,
       bookings,
+      staffMembers,
     };
+  },
+
+  async assignStaffToBooking(
+    bookingId: string,
+    staffId: string | null,
+    changedByUserId: string,
+  ) {
+    const booking = await bookingRepository().findOne({
+      where: { id: bookingId },
+      relations: {
+        assignedStaff: true,
+      },
+    });
+
+    if (!booking) {
+      throw new Error("Booking not found.");
+    }
+
+    const previousAssignee = booking.assignedStaff?.fullName || null;
+    let nextAssignee: StaffMember | null = null;
+
+    if (staffId) {
+      nextAssignee = await staffRepository().findOne({
+        where: { id: staffId },
+      });
+
+      if (!nextAssignee) {
+        throw new Error("Staff member not found.");
+      }
+
+      if (!nextAssignee.isActive) {
+        throw new Error("Selected staff member is inactive.");
+      }
+
+      if (!isStaffAvailableForDate(nextAssignee, booking.schedule.date)) {
+        throw new Error(
+          "Selected staff member is not available on the booking day.",
+        );
+      }
+    }
+
+    booking.assignedStaffId = nextAssignee?.id ?? null;
+    booking.assignedStaff = nextAssignee;
+    booking.assignedAt = nextAssignee ? new Date().toISOString() : null;
+    await bookingRepository().save(booking);
+
+    const assignmentNote = nextAssignee
+      ? previousAssignee && previousAssignee !== nextAssignee.fullName
+        ? `Admin reassigned staff from ${previousAssignee} to ${nextAssignee.fullName}.`
+        : `Admin assigned staff ${nextAssignee.fullName}.`
+      : previousAssignee
+        ? `Admin removed staff assignment (${previousAssignee}).`
+        : "Admin cleared the staff assignment.";
+
+    await createStatusHistoryEntry({
+      bookingId: booking.id,
+      changedByUserId,
+      fromStatus: booking.status,
+      toStatus: booking.status,
+      note: assignmentNote,
+    });
+
+    return booking;
   },
 
   async updateBookingStatus(

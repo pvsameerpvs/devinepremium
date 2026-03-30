@@ -5,10 +5,18 @@ import { Booking } from "../entities/Booking";
 import { BookingStatusHistory } from "../entities/BookingStatusHistory";
 import { Payment } from "../entities/Payment";
 import { SavedAddress } from "../entities/SavedAddress";
+import { StaffMember } from "../entities/StaffMember";
 import { User } from "../entities/User";
 
 const sharedOptions = {
-  entities: [User, Booking, BookingStatusHistory, Payment, SavedAddress],
+  entities: [
+    User,
+    Booking,
+    BookingStatusHistory,
+    Payment,
+    SavedAddress,
+    StaffMember,
+  ],
   synchronize: env.DB_SYNCHRONIZE,
   logging: false,
 };

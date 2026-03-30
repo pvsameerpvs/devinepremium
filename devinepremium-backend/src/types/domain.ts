@@ -84,3 +84,24 @@ export interface BookingChangeRequest {
   respondedByUserId?: string | null;
   adminNote?: string | null;
 }
+
+export const STAFF_AVAILABILITY_DAYS = [
+  "sun",
+  "mon",
+  "tue",
+  "wed",
+  "thu",
+  "fri",
+  "sat",
+] as const;
+export type StaffAvailabilityDay =
+  (typeof STAFF_AVAILABILITY_DAYS)[number];
+
+export interface StaffMemberInput {
+  fullName: string;
+  email?: string | null;
+  phone?: string | null;
+  availabilityDays: StaffAvailabilityDay[];
+  notes?: string | null;
+  isActive?: boolean;
+}

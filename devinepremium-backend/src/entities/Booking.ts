@@ -19,6 +19,7 @@ import {
 } from "../types/domain";
 import { Payment } from "./Payment";
 import { BookingStatusHistory } from "./BookingStatusHistory";
+import { StaffMember } from "./StaffMember";
 import { User } from "./User";
 
 @Entity("bookings")
@@ -73,6 +74,19 @@ export class Booking {
 
   @Column({ type: "simple-json", nullable: true })
   customerRequest!: BookingChangeRequest | null;
+
+  @Column({ type: "varchar", nullable: true })
+  assignedStaffId!: string | null;
+
+  @ManyToOne(() => StaffMember, (staffMember) => staffMember.bookings, {
+    nullable: true,
+    onDelete: "SET NULL",
+  })
+  @JoinColumn({ name: "assignedStaffId" })
+  assignedStaff!: StaffMember | null;
+
+  @Column({ type: "varchar", nullable: true })
+  assignedAt!: string | null;
 
   @Column({ type: "float", default: 0 })
   subtotal!: number;
