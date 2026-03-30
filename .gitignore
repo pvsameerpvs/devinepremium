@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -16,13 +17,19 @@
 # next.js
 /.next/
 /out/
+**/.next/
+**/out/
 
 # production
 /build
+**/dist/
 
 # misc
 .DS_Store
 *.pem
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
 
 # debug
 npm-debug.log*

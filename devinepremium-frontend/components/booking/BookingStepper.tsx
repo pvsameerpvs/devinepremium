@@ -31,6 +31,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/api";
+import { getStoredUserSession } from "@/lib/auth";
 import { CalendarIcon, Check, ChevronRight, ChevronLeft, Minus, Plus, MapPin, Clock, User, CreditCard } from "lucide-react";
 
 interface BookingStepperProps {
@@ -83,6 +85,8 @@ const STEPS = [
 export function BookingStepper({ service }: BookingStepperProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [bookingError, setBookingError] = useState("");
+  const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [isLeafletReady, setIsLeafletReady] = useState(false);
   const [locationError, setLocationError] = useState("");
@@ -121,6 +125,9 @@ export function BookingStepper({ service }: BookingStepperProps) {
       email: "",
       phone: "",
       instructions: "",
+    },
+    payment: {
+      method: "cash",
     },
   });
 
@@ -327,6 +334,24 @@ export function BookingStepper({ service }: BookingStepperProps) {
   }, []);
 
   useEffect(() => {
+    const session = getStoredUserSession();
+
+    if (!session) {
+      return;
+    }
+
+    setFormData((prev: any) => ({
+      ...prev,
+      contact: {
+        ...prev.contact,
+        fullName: prev.contact.fullName || session.user.fullName,
+        email: prev.contact.email || session.user.email,
+        phone: prev.contact.phone || session.user.phone || "",
+      },
+    }));
+  }, []);
+
+  useEffect(() => {
     if (
       currentStep !== 1 ||
       !isLeafletReady ||
@@ -498,7 +523,78 @@ export function BookingStepper({ service }: BookingStepperProps) {
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
+      setBookingError("");
       setIsModalOpen(true);
+    }
+  };
+
+  const handleCreateBooking = async () => {
+    if (!formData.contact.fullName || !formData.contact.email) {
+      setBookingError("Please complete your contact details before confirming.");
+      return;
+    }
+
+    if (!formData.address.city || !formData.address.location) {
+      setBookingError("Please complete your location details before confirming.");
+      return;
+    }
+
+    if (!formData.schedule.date || !formData.schedule.timeSlot) {
+      setBookingError("Please select your booking date and preferred time.");
+      return;
+    }
+
+    setBookingError("");
+    setIsSubmittingBooking(true);
+
+    try {
+      const response = await apiRequest<{
+        message: string;
+        payment?: {
+          id: string;
+          method: string;
+          status: string;
+        };
+      }>("/api/v1/bookings/public", {
+        method: "POST",
+        body: JSON.stringify({
+          serviceId: service.id,
+          serviceSlug: service.slug,
+          serviceTitle: service.title,
+          serviceOptions: formData.serviceOptions,
+          address: formData.address,
+          schedule: {
+            date: format(formData.schedule.date, "yyyy-MM-dd"),
+            timeSlot: formData.schedule.timeSlot,
+          },
+          contact: formData.contact,
+          paymentMethod: formData.payment.method,
+          pricing: {
+            subtotal,
+            discount,
+            vat,
+            total,
+            lineItems,
+          },
+        }),
+      });
+
+      setIsModalOpen(false);
+
+      if (formData.payment.method === "online" && response.payment?.id) {
+        window.location.href = `/payment/checkout?paymentId=${response.payment.id}`;
+        return;
+      }
+
+      window.location.href = "/dashboard";
+    } catch (error) {
+      setBookingError(
+        error instanceof Error
+          ? error.message
+          : "Unable to create booking right now. Please try again.",
+      );
+    } finally {
+      setIsSubmittingBooking(false);
     }
   };
 
@@ -1016,6 +1112,54 @@ _Please confirm availability._
                 onChange={(e) => setFormData({...formData, contact: {...formData.contact, instructions: e.target.value}})}
             />
         </div>
+        <div className="grid gap-3">
+            <Label>Payment Method</Label>
+            <RadioGroup
+                value={formData.payment.method}
+                onValueChange={(value) =>
+                  setFormData({
+                    ...formData,
+                    payment: { method: value },
+                  })
+                }
+                className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+            >
+                <Label
+                  htmlFor="payment-cash"
+                  className={cn(
+                    "flex cursor-pointer flex-col rounded-xl border-2 p-4 transition-all",
+                    formData.payment.method === "cash"
+                      ? "border-[#00B4D8] bg-[#00B4D8]/5"
+                      : "border-gray-200 bg-white",
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <RadioGroupItem value="cash" id="payment-cash" />
+                    <span className="font-semibold text-gray-900">Cash</span>
+                  </div>
+                  <span className="mt-2 text-xs text-gray-500">
+                    Pay in cash when the team arrives or when the job is completed.
+                  </span>
+                </Label>
+                <Label
+                  htmlFor="payment-online"
+                  className={cn(
+                    "flex cursor-pointer flex-col rounded-xl border-2 p-4 transition-all",
+                    formData.payment.method === "online"
+                      ? "border-[#7B2D8B] bg-[#7B2D8B]/5"
+                      : "border-gray-200 bg-white",
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <RadioGroupItem value="online" id="payment-online" />
+                    <span className="font-semibold text-gray-900">Online Payment</span>
+                  </div>
+                  <span className="mt-2 text-xs text-gray-500">
+                    Continue to the online checkout page after booking confirmation.
+                  </span>
+                </Label>
+            </RadioGroup>
+        </div>
     </div>
   );
 
@@ -1214,17 +1358,49 @@ _Please confirm availability._
                    <p className="text-sm text-gray-600">{formData.contact.phone}</p>
                </div>
 
+               <div className="space-y-2">
+                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Payment Method</p>
+                   <p className="font-medium text-gray-900 text-sm capitalize">
+                     {formData.payment.method === "online" ? "Online Payment" : "Cash Payment"}
+                   </p>
+                   <p className="text-xs text-gray-500">
+                     {formData.payment.method === "online"
+                       ? "You will continue to the checkout screen after booking."
+                       : "Payment will stay marked as cash due until admin updates it."}
+                   </p>
+               </div>
+
                <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
                     <span className="font-semibold text-gray-700">Total Estimate</span>
                      <span className="text-xl font-bold text-[#00B4D8]">{formatAED(total)} AED</span>
                 </div>
             </div>
 
-            <div className="p-6 bg-gray-50 border-t border-gray-100 flex gap-3">
+            <div className="p-6 bg-gray-50 border-t border-gray-100 space-y-3">
+              {bookingError && (
+                <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {bookingError}
+                </p>
+              )}
+              <div className="flex flex-col gap-3 sm:flex-row">
                <Button variant="outline" className="flex-1" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-               <Button className="flex-1 bg-[#25D366] hover:bg-[#128C7E] text-white" onClick={handleWhatsAppSubmit}>
+               <Button
+                 className="flex-1 bg-[#7B2D8B] hover:bg-[#632271] text-white"
+                 onClick={handleCreateBooking}
+                 disabled={isSubmittingBooking}
+               >
+                  {isSubmittingBooking
+                    ? "Creating booking..."
+                    : formData.payment.method === "online"
+                      ? "Confirm & Pay Online"
+                      : "Confirm Booking"}
+               </Button>
+              </div>
+              <div className="flex">
+               <Button className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white" onClick={handleWhatsAppSubmit}>
                   Confirm via WhatsApp
                </Button>
+              </div>
             </div>
           </div>
         </div>
