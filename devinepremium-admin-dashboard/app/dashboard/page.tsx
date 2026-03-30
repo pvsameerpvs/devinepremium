@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BOOKING_STATUSES, PAYMENT_STATUSES } from "@devinepremium/shared";
 import useSWR from "swr";
 import { apiRequest } from "@/lib/api";
 import {
@@ -8,24 +9,6 @@ import {
   getStoredAdminSession,
   type AdminSession,
 } from "@/lib/auth";
-
-const BOOKING_STATUSES = [
-  "pending",
-  "accepted",
-  "scheduled",
-  "in_progress",
-  "completed",
-  "cancelled",
-  "rejected",
-] as const;
-
-const PAYMENT_STATUSES = [
-  "cash_due",
-  "pending",
-  "paid",
-  "failed",
-  "refunded",
-] as const;
 
 interface DashboardSummary {
   totalBookings: number;

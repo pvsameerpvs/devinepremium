@@ -5,7 +5,8 @@
   "workspaces": [
     "devinepremium-frontend",
     "devinepremium-admin-dashboard",
-    "devinepremium-backend"
+    "devinepremium-backend",
+    "packages/*"
   ],
   "scripts": {
     "dev": "concurrently -n frontend,admin,backend -c cyan,magenta,yellow \"npm run dev -w devinepremium-frontend\" \"npm run dev -w devinepremium-admin-dashboard\" \"npm run dev -w devinepremium-backend\"",

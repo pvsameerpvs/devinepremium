@@ -1,47 +1,16 @@
-export interface AdminUser {
-  id: string;
-  fullName: string;
-  email: string;
-  role: string;
-}
+import {
+  createSessionStore,
+  type AuthSession,
+  type AuthUser,
+} from "@devinepremium/shared";
 
-export interface AdminSession {
-  token: string;
-  user: AdminUser;
-}
+export type AdminUser = AuthUser;
+export type AdminSession = AuthSession<AdminUser>;
 
-const ADMIN_SESSION_KEY = "devinepremium-admin-session";
+const adminSessionStore = createSessionStore<AdminSession>(
+  "devinepremium-admin-session",
+);
 
-export function getStoredAdminSession(): AdminSession | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const raw = window.localStorage.getItem(ADMIN_SESSION_KEY);
-  if (!raw) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(raw) as AdminSession;
-  } catch {
-    window.localStorage.removeItem(ADMIN_SESSION_KEY);
-    return null;
-  }
-}
-
-export function saveAdminSession(session: AdminSession) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(session));
-}
-
-export function clearAdminSession() {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.removeItem(ADMIN_SESSION_KEY);
-}
+export const getStoredAdminSession = adminSessionStore.get;
+export const saveAdminSession = adminSessionStore.set;
+export const clearAdminSession = adminSessionStore.clear;

@@ -5,6 +5,7 @@ This repository is now organized as three separate deployable projects:
 - `devinepremium-frontend`: customer website and booking experience
 - `devinepremium-admin-dashboard`: admin operations dashboard
 - `devinepremium-backend`: API, auth, booking logic, payment state, and database access
+- `packages/devinepremium-shared`: shared utilities and domain constants to avoid repeated code
 
 ## Stack
 
@@ -55,4 +56,5 @@ npm run dev:backend
 ## Docs
 
 - [Architecture plan](./docs/architecture.md)
+- [Project structure](./docs/project-structure.md)
 - [Setup guide](./docs/setup.md)
