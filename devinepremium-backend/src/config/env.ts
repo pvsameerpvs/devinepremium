@@ -42,4 +42,6 @@ export const env = {
     process.env.SEED_ADMIN_EMAIL || "admin@devinepremium.com",
   SEED_ADMIN_PASSWORD:
     process.env.SEED_ADMIN_PASSWORD || "Admin@12345",
+  SUPABASE_URL: process.env.SUPABASE_URL || "",
+  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || "",
 } as const;

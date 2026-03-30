@@ -1,6 +1,8 @@
 import bcrypt from "bcryptjs";
+import { randomUUID } from "crypto";
 import { AppDataSource } from "../config/data-source";
 import { User } from "../entities/User";
+import { createSupabaseAuthClient } from "../lib/supabase";
 import { signAuthToken } from "../utils/jwt";
 import { bookingService } from "./bookingService";
 
@@ -14,6 +16,10 @@ interface RegisterInput {
 interface LoginInput {
   email: string;
   password: string;
+}
+
+interface GoogleLoginInput {
+  accessToken: string;
 }
 
 const userRepository = () => AppDataSource.getRepository(User);
@@ -93,6 +99,47 @@ export const authService = {
 
     return {
       message: "Login successful.",
+      token: createToken(user),
+      user: toSafeUser(user),
+    };
+  },
+
+  async loginWithGoogle(input: GoogleLoginInput) {
+    const supabase = createSupabaseAuthClient();
+    const { data, error } = await supabase.auth.getUser(input.accessToken);
+
+    if (error || !data.user?.email) {
+      throw new Error("Unable to verify Google login with Supabase.");
+    }
+
+    const email = normalizeEmail(data.user.email);
+    let user = await userRepository().findOne({
+      where: { email },
+    });
+
+    if (!user) {
+      const passwordHash = await bcrypt.hash(randomUUID(), 10);
+      const fullName =
+        data.user.user_metadata?.full_name ||
+        data.user.user_metadata?.name ||
+        email.split("@")[0];
+
+      user = userRepository().create({
+        fullName: String(fullName).trim(),
+        email,
+        phone:
+          typeof data.user.phone === "string" ? data.user.phone.trim() : null,
+        passwordHash,
+        role: "user",
+      });
+
+      user = await userRepository().save(user);
+    }
+
+    await bookingService.attachGuestRecordsToUser(user.id, user.email);
+
+    return {
+      message: "Google login successful.",
       token: createToken(user),
       user: toSafeUser(user),
     };

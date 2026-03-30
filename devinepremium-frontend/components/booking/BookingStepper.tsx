@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Script from "next/script";
-import { Service, ServiceOption } from "@/lib/services";
+import { Service } from "@/lib/services";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -87,6 +87,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [bookingError, setBookingError] = useState("");
   const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
+  const [accountEmail, setAccountEmail] = useState("");
   const [isLocating, setIsLocating] = useState(false);
   const [isLeafletReady, setIsLeafletReady] = useState(false);
   const [locationError, setLocationError] = useState("");
@@ -340,6 +341,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
       return;
     }
 
+    setAccountEmail(session.user.email);
     setFormData((prev: any) => ({
       ...prev,
       contact: {
@@ -350,6 +352,15 @@ export function BookingStepper({ service }: BookingStepperProps) {
       },
     }));
   }, []);
+
+  const redirectToLogin = () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const redirect = `${window.location.pathname}${window.location.search}`;
+    window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
+  };
 
   useEffect(() => {
     if (
@@ -523,6 +534,13 @@ export function BookingStepper({ service }: BookingStepperProps) {
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
+      const session = getStoredUserSession();
+
+      if (!session?.token) {
+        redirectToLogin();
+        return;
+      }
+
       setBookingError("");
       setIsModalOpen(true);
     }
@@ -544,6 +562,14 @@ export function BookingStepper({ service }: BookingStepperProps) {
       return;
     }
 
+    const session = getStoredUserSession();
+
+    if (!session?.token) {
+      setBookingError("Please login to continue with your order.");
+      redirectToLogin();
+      return;
+    }
+
     setBookingError("");
     setIsSubmittingBooking(true);
 
@@ -555,8 +581,9 @@ export function BookingStepper({ service }: BookingStepperProps) {
           method: string;
           status: string;
         };
-      }>("/api/v1/bookings/public", {
+      }>("/api/v1/bookings", {
         method: "POST",
+        token: session.token,
         body: JSON.stringify({
           serviceId: service.id,
           serviceSlug: service.slug,
@@ -567,7 +594,10 @@ export function BookingStepper({ service }: BookingStepperProps) {
             date: format(formData.schedule.date, "yyyy-MM-dd"),
             timeSlot: formData.schedule.timeSlot,
           },
-          contact: formData.contact,
+          contact: {
+            ...formData.contact,
+            email: session.user.email,
+          },
           paymentMethod: formData.payment.method,
           pricing: {
             subtotal,
@@ -586,7 +616,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
         return;
       }
 
-      window.location.href = "/dashboard";
+      window.location.href = "/account";
     } catch (error) {
       setBookingError(
         error instanceof Error
@@ -596,51 +626,6 @@ export function BookingStepper({ service }: BookingStepperProps) {
     } finally {
       setIsSubmittingBooking(false);
     }
-  };
-
-  const handleWhatsAppSubmit = () => {
-      const breakdownText = lineItems
-        .filter((item) => item.label !== "Discount" && !item.label.startsWith("VAT"))
-        .map((item) => `🔹 ${item.label}: ${formatAED(item.amount)} AED`)
-        .join("\n");
-      const discountLine = discount > 0 ? `*Discount:* -${formatAED(discount)} AED\n` : "";
-      const mapLine = formData.address.mapLink
-        ? `🗺 Map Pin: ${formData.address.mapLink}`
-        : "🗺 Map Pin: Not Shared";
-      const message = `
-*New Booking Request - Devine Premier*
----------------------------
-*Service:* ${service.title}
-*Subtotal:* ${formatAED(subtotal)} AED
-${discountLine}*VAT (5%):* ${formatAED(vat)} AED
-*Total Estimate:* ${formatAED(total)} AED
-
-*Service Details:*
-${breakdownText}
-
-*Schedule:*
-📅 Date: ${formData.schedule.date ? format(formData.schedule.date, "PPP") : "Not Set"}
-⏰ Time: ${formData.schedule.timeSlot || "Not Set"}
-
-*Location:*
-📍 ${addressSummary || "Not Set"}
-${mapLine}
-
-*Client Details:*
-👤 Name: ${formData.contact.fullName}
-📞 Phone: ${formData.contact.phone}
-📧 Email: ${formData.contact.email}
-📝 Notes: ${formData.contact.instructions || "None"}
-
----------------------------
-_Please confirm availability._
-      `.trim();
-
-      const encodedMessage = encodeURIComponent(message);
-      const whatsappUrl = `https://wa.me/971563758229?text=${encodedMessage}`;
-      
-      window.open(whatsappUrl, '_blank');
-      setIsModalOpen(false);
   };
 
   const handleBack = () => {
@@ -1086,10 +1071,16 @@ _Please confirm availability._
                 id="email" 
                 type="email"
                 className="h-12"
-                 placeholder="john@example.com"
+                placeholder="john@example.com"
                 value={formData.contact.email}
                 onChange={(e) => setFormData({...formData, contact: {...formData.contact, email: e.target.value}})}
+                readOnly={Boolean(accountEmail)}
             />
+            {accountEmail && (
+              <p className="text-xs text-gray-500">
+                Orders will be linked to your logged-in account email.
+              </p>
+            )}
         </div>
         <div className="grid gap-2">
             <Label htmlFor="phone">Phone Number</Label>
@@ -1394,11 +1385,6 @@ _Please confirm availability._
                     : formData.payment.method === "online"
                       ? "Confirm & Pay Online"
                       : "Confirm Booking"}
-               </Button>
-              </div>
-              <div className="flex">
-               <Button className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white" onClick={handleWhatsAppSubmit}>
-                  Confirm via WhatsApp
                </Button>
               </div>
             </div>

@@ -18,6 +18,10 @@ const loginSchema = z.object({
   password: z.string().min(6),
 });
 
+const googleLoginSchema = z.object({
+  accessToken: z.string().min(1),
+});
+
 router.post(
   "/register",
   asyncHandler(async (req, res) => {
@@ -32,6 +36,15 @@ router.post(
   asyncHandler(async (req, res) => {
     const input = loginSchema.parse(req.body);
     const result = await authService.login(input);
+    res.json(result);
+  }),
+);
+
+router.post(
+  "/google",
+  asyncHandler(async (req, res) => {
+    const input = googleLoginSchema.parse(req.body);
+    const result = await authService.loginWithGoogle(input);
     res.json(result);
   }),
 );

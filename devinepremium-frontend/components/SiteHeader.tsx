@@ -1,7 +1,27 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import { getStoredUserSession } from "@/lib/auth";
 
 export function SiteHeader() {
+  const [accountHref, setAccountHref] = useState("/login");
+  const [accountLabel, setAccountLabel] = useState("Login");
+
+  useEffect(() => {
+    const session = getStoredUserSession();
+
+    if (session?.token) {
+      setAccountHref("/account");
+      setAccountLabel("My Account");
+      return;
+    }
+
+    setAccountHref("/login?redirect=%2Faccount");
+    setAccountLabel("Login");
+  }, []);
+
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
@@ -47,6 +67,13 @@ export function SiteHeader() {
               Contact
             </Link>
           </div>
+
+          <Link
+            href={accountHref}
+            className="inline-flex h-10 items-center justify-center rounded-full border border-border px-5 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+          >
+            {accountLabel}
+          </Link>
 
           <Link
             href="/#services"

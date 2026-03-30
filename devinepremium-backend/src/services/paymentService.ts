@@ -6,37 +6,36 @@ import { PaymentStatus } from "../types/domain";
 const paymentRepository = () => AppDataSource.getRepository(Payment);
 const bookingRepository = () => AppDataSource.getRepository(Booking);
 
+async function findOwnedPayment(paymentId: string, userId: string) {
+  const payment = await paymentRepository().findOne({
+    where: { id: paymentId },
+    relations: {
+      booking: true,
+    },
+  });
+
+  if (!payment) {
+    throw new Error("Payment not found.");
+  }
+
+  if (payment.userId !== userId && payment.booking.userId !== userId) {
+    throw new Error("You do not have access to this payment.");
+  }
+
+  return payment;
+}
+
 export const paymentService = {
-  async getPublicPayment(paymentId: string) {
-    const payment = await paymentRepository().findOne({
-      where: { id: paymentId },
-      relations: {
-        booking: true,
-      },
-    });
-
-    if (!payment) {
-      throw new Error("Payment not found.");
-    }
-
+  async getPaymentForUser(paymentId: string, userId: string) {
+    const payment = await findOwnedPayment(paymentId, userId);
     return {
       payment,
       booking: payment.booking,
     };
   },
 
-  async completeMockPayment(paymentId: string) {
-    const payment = await paymentRepository().findOne({
-      where: { id: paymentId },
-      relations: {
-        booking: true,
-      },
-    });
-
-    if (!payment) {
-      throw new Error("Payment not found.");
-    }
-
+  async completeMockPaymentForUser(paymentId: string, userId: string) {
+    const payment = await findOwnedPayment(paymentId, userId);
     if (payment.method !== "online") {
       throw new Error("This payment is not an online payment.");
     }

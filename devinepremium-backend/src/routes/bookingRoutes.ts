@@ -8,7 +8,7 @@ import { asyncHandler } from "../utils/http";
 
 const router = Router();
 
-const createPublicBookingSchema = z.object({
+const createBookingSchema = z.object({
   serviceId: z.string().min(1),
   serviceSlug: z.string().min(1),
   serviceTitle: z.string().min(1),
@@ -48,10 +48,20 @@ const createPublicBookingSchema = z.object({
 });
 
 router.post(
-  "/public",
+  "/",
+  authenticate,
   asyncHandler(async (req, res) => {
-    const input = createPublicBookingSchema.parse(req.body);
-    const result = await bookingService.createPublicBooking(input);
+    const user = await authService.getUserById(req.authUser!.id);
+
+    if (!user) {
+      res.status(404).json({
+        message: "User not found.",
+      });
+      return;
+    }
+
+    const input = createBookingSchema.parse(req.body);
+    const result = await bookingService.createBookingForUser(input, user);
     res.status(201).json(result);
   }),
 );

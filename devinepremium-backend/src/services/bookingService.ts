@@ -12,7 +12,7 @@ import {
 } from "../types/domain";
 import { User } from "../entities/User";
 
-interface CreatePublicBookingInput {
+interface CreateBookingInput {
   serviceId: string;
   serviceSlug: string;
   serviceTitle: string;
@@ -41,12 +41,8 @@ function createReference(prefix: string) {
 }
 
 export const bookingService = {
-  async createPublicBooking(input: CreatePublicBookingInput) {
-    const email = normalizeEmail(input.contact.email);
-    const linkedUser = await userRepository().findOne({
-      where: { email },
-    });
-
+  async createBookingForUser(input: CreateBookingInput, user: User) {
+    const email = normalizeEmail(user.email);
     const booking = bookingRepository().create({
       bookingReference: createReference("DP"),
       serviceId: input.serviceId,
@@ -68,14 +64,14 @@ export const bookingService = {
       vatAmount: input.pricing.vat,
       totalAmount: input.pricing.total,
       currency: "AED",
-      userId: linkedUser?.id || null,
+      userId: user.id,
     });
 
     const savedBooking = await bookingRepository().save(booking);
 
     const payment = paymentRepository().create({
       bookingId: savedBooking.id,
-      userId: linkedUser?.id || null,
+      userId: user.id,
       payerEmail: email,
       method: input.paymentMethod,
       provider: input.paymentMethod === "online" ? "mock-gateway" : "cash",
@@ -96,10 +92,10 @@ export const bookingService = {
 
     const history = statusHistoryRepository().create({
       bookingId: savedBooking.id,
-      changedByUserId: linkedUser?.id || null,
+      changedByUserId: user.id,
       fromStatus: null,
       toStatus: "pending",
-      note: "Booking created from customer frontend.",
+      note: "Order created from customer frontend.",
     });
 
     await statusHistoryRepository().save(history);

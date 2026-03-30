@@ -5,9 +5,24 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { saveUserSession, type UserSession } from "@/lib/auth";
+import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
 
 interface AuthResponse extends UserSession {
   message: string;
+}
+
+function getRedirectTarget() {
+  if (typeof window === "undefined") {
+    return "/account";
+  }
+
+  const redirect = new URLSearchParams(window.location.search).get("redirect");
+
+  if (!redirect || !redirect.startsWith("/") || redirect.startsWith("//")) {
+    return "/account";
+  }
+
+  return redirect;
 }
 
 export default function LoginPage() {
@@ -20,6 +35,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,7 +61,7 @@ export default function LoginPage() {
         user: session.user,
       });
       setSuccess(session.message);
-      router.push("/dashboard");
+      router.push(getRedirectTarget());
     } catch (submissionError) {
       setError(
         submissionError instanceof Error
@@ -54,6 +70,44 @@ export default function LoginPage() {
       );
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleGoogleLogin() {
+    setError("");
+    setSuccess("");
+
+    if (!isSupabaseConfigured()) {
+      setError(
+        "Google auth is not configured yet. Add your Supabase URL and anon key in the frontend env file.",
+      );
+      return;
+    }
+
+    setIsGoogleLoading(true);
+
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const redirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(
+        getRedirectTarget(),
+      )}`;
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+        },
+      });
+
+      if (oauthError) {
+        throw oauthError;
+      }
+    } catch (googleError) {
+      setError(
+        googleError instanceof Error
+          ? googleError.message
+          : "Google sign-in failed.",
+      );
+      setIsGoogleLoading(false);
     }
   }
 
@@ -66,20 +120,20 @@ export default function LoginPage() {
               Devine Premium
             </p>
             <h1 className="mt-6 max-w-md text-4xl font-black leading-tight">
-              Customer login for booking history and payment follow-up.
+              Customer login for order history and payment follow-up.
             </h1>
             <p className="mt-6 max-w-md text-sm leading-7 text-slate-300">
-              Sign in with email to view your bookings, track status updates,
+              Sign in with email to view your orders, track status updates,
               and continue online payments from one place.
             </p>
             <div className="mt-10 space-y-4 rounded-3xl border border-white/10 bg-white/5 p-6">
               <div>
                 <p className="text-sm font-semibold text-white">
-                  What you get inside the dashboard
+                  What you get inside your account
                 </p>
                 <p className="mt-2 text-sm text-slate-300">
-                  Booking history, live status, payment state, service totals,
-                  and personal booking details linked to your email.
+                  Order history, live status, payment state, service totals,
+                  and personal service details linked to your email.
                 </p>
               </div>
               <Link
@@ -194,8 +248,26 @@ export default function LoginPage() {
                 {isSubmitting
                   ? "Please wait..."
                   : mode === "login"
-                    ? "Login to dashboard"
+                    ? "Login to account"
                     : "Create account"}
+              </button>
+
+              <div className="flex items-center gap-3 pt-1">
+                <div className="h-px flex-1 bg-slate-200" />
+                <span className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
+                  Or
+                </span>
+                <div className="h-px flex-1 bg-slate-200" />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={isGoogleLoading}
+                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                <span className="text-base">G</span>
+                {isGoogleLoading ? "Redirecting to Google..." : "Continue with Google"}
               </button>
             </form>
           </section>

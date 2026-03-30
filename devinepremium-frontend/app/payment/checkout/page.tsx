@@ -1,12 +1,16 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { apiRequest } from "@/lib/api";
+import {
+  getStoredUserSession,
+  type UserSession,
+} from "@/lib/auth";
 
-interface PublicPaymentResponse {
+interface PaymentCheckoutResponse {
   payment: {
     id: string;
     status: string;
@@ -24,14 +28,33 @@ function PaymentCheckoutContent() {
   const paymentId = searchParams.get("paymentId");
   const [message, setMessage] = useState("");
   const [isPaying, setIsPaying] = useState(false);
+  const [session, setSession] = useState<UserSession | null>(null);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    setSession(getStoredUserSession());
+    setIsReady(true);
+  }, []);
+
+  const loginRedirect = paymentId
+    ? `/login?redirect=${encodeURIComponent(
+        `/payment/checkout?paymentId=${paymentId}`,
+      )}`
+    : "/login?redirect=%2Faccount";
 
   const { data, error, isLoading, mutate } = useSWR(
-    paymentId ? ["/api/v1/payments/public/" + paymentId] : null,
-    ([path]) => apiRequest<PublicPaymentResponse>(path),
+    paymentId && session?.token
+      ? [`/api/v1/payments/${paymentId}`, session.token]
+      : null,
+    ([path, token]) =>
+      apiRequest<PaymentCheckoutResponse>(path, {
+        method: "GET",
+        token,
+      }),
   );
 
   async function handleCompletePayment() {
-    if (!paymentId) {
+    if (!paymentId || !session?.token) {
       return;
     }
 
@@ -40,9 +63,10 @@ function PaymentCheckoutContent() {
 
     try {
       const response = await apiRequest<{ message: string }>(
-        `/api/v1/payments/public/${paymentId}/complete`,
+        `/api/v1/payments/${paymentId}/complete`,
         {
           method: "POST",
+          token: session.token,
         },
       );
 
@@ -67,7 +91,7 @@ function PaymentCheckoutContent() {
             Online payment
           </p>
           <h1 className="mt-4 text-3xl font-black">
-            Complete your booking payment
+            Complete your order payment
           </h1>
         </div>
 
@@ -78,23 +102,52 @@ function PaymentCheckoutContent() {
             </div>
           )}
 
-          {isLoading && paymentId && (
+          {!isReady && paymentId && (
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
+              Checking your account session...
+            </div>
+          )}
+
+          {isReady && !session && paymentId && (
+            <div className="space-y-4 rounded-[28px] border border-amber-200 bg-amber-50 p-6 text-amber-900">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-700">
+                  Login required
+                </p>
+                <h2 className="mt-3 text-2xl font-black text-slate-900">
+                  Sign in before continuing payment
+                </h2>
+                <p className="mt-3 text-sm leading-7 text-slate-700">
+                  Online payment is available only for logged-in customers, so
+                  your order stays linked to your account history.
+                </p>
+              </div>
+              <Link
+                href={loginRedirect}
+                className="inline-flex rounded-full bg-[#00B4D8] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0097b7]"
+              >
+                Login to continue
+              </Link>
+            </div>
+          )}
+
+          {isLoading && paymentId && session && (
             <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
               Loading payment details...
             </div>
           )}
 
-          {error && (
+          {error && session && (
             <div className="rounded-3xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
               {error instanceof Error ? error.message : "Payment lookup failed."}
             </div>
           )}
 
-          {data && (
+          {data && session && (
             <div className="space-y-5">
               <div className="rounded-[28px] border border-slate-200 p-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-                  Booking reference
+                  Order reference
                 </p>
                 <p className="mt-2 text-xl font-bold text-slate-900">
                   {data.booking.bookingReference}
@@ -138,12 +191,14 @@ function PaymentCheckoutContent() {
             </div>
           )}
 
-          <Link
-            href="/dashboard"
-            className="inline-flex rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
-          >
-            Back to dashboard
-          </Link>
+          {session && (
+            <Link
+              href="/account"
+              className="inline-flex rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+            >
+              Back to account
+            </Link>
+          )}
         </div>
       </div>
     </main>
