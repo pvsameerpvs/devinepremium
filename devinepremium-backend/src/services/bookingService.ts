@@ -2,15 +2,19 @@ import { AppDataSource } from "../config/data-source";
 import { Booking } from "../entities/Booking";
 import { BookingStatusHistory } from "../entities/BookingStatusHistory";
 import { Payment } from "../entities/Payment";
+import { User } from "../entities/User";
+import { accountService } from "./accountService";
 import {
   BookingAddress,
+  BookingChangeRequestStatus,
+  BookingChangeRequestType,
   BookingContact,
   BookingPricing,
   BookingSchedule,
   BookingStatus,
   PaymentMethod,
+  SavedAddressInput,
 } from "../types/domain";
-import { User } from "../entities/User";
 
 interface CreateBookingInput {
   serviceId: string;
@@ -22,6 +26,10 @@ interface CreateBookingInput {
   contact: BookingContact;
   paymentMethod: PaymentMethod;
   pricing: BookingPricing;
+  saveAddress?: {
+    label: string;
+    isDefault?: boolean;
+  };
 }
 
 const bookingRepository = () => AppDataSource.getRepository(Booking);
@@ -38,6 +46,65 @@ function createReference(prefix: string) {
   const random = Math.random().toString(36).slice(2, 8).toUpperCase();
   const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   return `${prefix}-${stamp}-${random}`;
+}
+
+function canCustomerManageBooking(booking: Booking) {
+  return !["completed", "cancelled", "rejected"].includes(booking.status);
+}
+
+function toCustomerRequestNote(
+  type: BookingChangeRequestType,
+  note?: string,
+  schedule?: BookingSchedule,
+) {
+  if (type === "cancel") {
+    return note?.trim()
+      ? `Customer requested cancellation. ${note.trim()}`
+      : "Customer requested cancellation.";
+  }
+
+  const scheduleText = schedule
+    ? `Requested new schedule: ${schedule.date} at ${schedule.timeSlot}.`
+    : "Customer requested a new schedule.";
+
+  return note?.trim() ? `${scheduleText} ${note.trim()}` : scheduleText;
+}
+
+async function createStatusHistoryEntry(input: {
+  bookingId: string;
+  changedByUserId: string | null;
+  fromStatus: BookingStatus | null;
+  toStatus: BookingStatus;
+  note?: string | null;
+}) {
+  const history = statusHistoryRepository().create({
+    bookingId: input.bookingId,
+    changedByUserId: input.changedByUserId,
+    fromStatus: input.fromStatus,
+    toStatus: input.toStatus,
+    note: input.note?.trim() || null,
+  });
+
+  await statusHistoryRepository().save(history);
+}
+
+async function getOwnedBooking(bookingId: string, userId: string) {
+  const booking = await bookingRepository().findOne({
+    where: {
+      id: bookingId,
+      userId,
+    },
+    relations: {
+      payments: true,
+      statusHistory: true,
+    },
+  });
+
+  if (!booking) {
+    throw new Error("Booking not found.");
+  }
+
+  return booking;
 }
 
 export const bookingService = {
@@ -59,6 +126,7 @@ export const bookingService = {
       contactEmail: email,
       contactPhone: input.contact.phone?.trim() || null,
       notes: input.contact.instructions?.trim() || null,
+      customerRequest: null,
       subtotal: input.pricing.subtotal,
       discountAmount: input.pricing.discount,
       vatAmount: input.pricing.vat,
@@ -90,7 +158,7 @@ export const bookingService = {
 
     const savedPayment = await paymentRepository().save(payment);
 
-    const history = statusHistoryRepository().create({
+    await createStatusHistoryEntry({
       bookingId: savedBooking.id,
       changedByUserId: user.id,
       fromStatus: null,
@@ -98,13 +166,27 @@ export const bookingService = {
       note: "Order created from customer frontend.",
     });
 
-    await statusHistoryRepository().save(history);
+    if (input.saveAddress?.label?.trim()) {
+      const savedAddressInput: SavedAddressInput = {
+        label: input.saveAddress.label.trim(),
+        location: input.address.location,
+        building: input.address.building,
+        apartment: input.address.apartment,
+        city: input.address.city,
+        mapLink: input.address.mapLink,
+        lat: input.address.lat,
+        lng: input.address.lng,
+        isDefault: input.saveAddress.isDefault,
+      };
+
+      await accountService.createSavedAddress(user.id, savedAddressInput);
+    }
 
     return {
       message:
         input.paymentMethod === "online"
           ? "Booking created. Continue to the online payment page."
-          : "Booking created successfully. You can track it from your dashboard.",
+          : "Booking created successfully. You can track it from your account.",
       payment: savedPayment,
     };
   },
@@ -172,6 +254,9 @@ export const bookingService = {
       cashDueBookings: bookings.filter(
         (booking) => booking.paymentStatus === "cash_due",
       ).length,
+      pendingCustomerRequests: bookings.filter(
+        (booking) => booking.customerRequest?.status === "pending",
+      ).length,
       revenueCollected: bookings
         .filter((booking) => booking.paymentStatus === "paid")
         .reduce((total, booking) => total + booking.totalAmount, 0),
@@ -201,7 +286,7 @@ export const bookingService = {
     booking.status = toStatus;
     await bookingRepository().save(booking);
 
-    const history = statusHistoryRepository().create({
+    await createStatusHistoryEntry({
       bookingId: booking.id,
       changedByUserId,
       fromStatus: previousStatus,
@@ -209,7 +294,148 @@ export const bookingService = {
       note: note?.trim() || null,
     });
 
-    await statusHistoryRepository().save(history);
+    return booking;
+  },
+
+  async requestCustomerCancel(
+    bookingId: string,
+    userId: string,
+    note?: string,
+  ) {
+    const booking = await getOwnedBooking(bookingId, userId);
+
+    if (!canCustomerManageBooking(booking)) {
+      throw new Error("This order can no longer be changed.");
+    }
+
+    if (booking.customerRequest?.status === "pending") {
+      throw new Error("This order already has a pending request.");
+    }
+
+    booking.customerRequest = {
+      type: "cancel",
+      status: "pending",
+      note: note?.trim() || null,
+      requestedSchedule: null,
+      createdAt: new Date().toISOString(),
+      respondedAt: null,
+      respondedByUserId: null,
+      adminNote: null,
+    };
+
+    await bookingRepository().save(booking);
+    await createStatusHistoryEntry({
+      bookingId: booking.id,
+      changedByUserId: userId,
+      fromStatus: booking.status,
+      toStatus: booking.status,
+      note: toCustomerRequestNote("cancel", note),
+    });
+
+    return booking;
+  },
+
+  async requestCustomerReschedule(
+    bookingId: string,
+    userId: string,
+    input: {
+      schedule: BookingSchedule;
+      note?: string;
+    },
+  ) {
+    const booking = await getOwnedBooking(bookingId, userId);
+
+    if (!canCustomerManageBooking(booking)) {
+      throw new Error("This order can no longer be changed.");
+    }
+
+    if (booking.customerRequest?.status === "pending") {
+      throw new Error("This order already has a pending request.");
+    }
+
+    booking.customerRequest = {
+      type: "reschedule",
+      status: "pending",
+      note: input.note?.trim() || null,
+      requestedSchedule: input.schedule,
+      createdAt: new Date().toISOString(),
+      respondedAt: null,
+      respondedByUserId: null,
+      adminNote: null,
+    };
+
+    await bookingRepository().save(booking);
+    await createStatusHistoryEntry({
+      bookingId: booking.id,
+      changedByUserId: userId,
+      fromStatus: booking.status,
+      toStatus: booking.status,
+      note: toCustomerRequestNote("reschedule", input.note, input.schedule),
+    });
+
+    return booking;
+  },
+
+  async resolveCustomerRequest(
+    bookingId: string,
+    changedByUserId: string,
+    input: {
+      decision: BookingChangeRequestStatus;
+      note?: string;
+    },
+  ) {
+    const booking = await bookingRepository().findOne({
+      where: { id: bookingId },
+    });
+
+    if (!booking) {
+      throw new Error("Booking not found.");
+    }
+
+    if (!booking.customerRequest || booking.customerRequest.status !== "pending") {
+      throw new Error("No pending customer request found for this booking.");
+    }
+
+    const request = booking.customerRequest;
+    const previousStatus = booking.status;
+    let historyNote = "";
+
+    if (input.decision === "approved") {
+      if (request.type === "cancel") {
+        booking.status = "cancelled";
+        historyNote =
+          input.note?.trim() ||
+          "Admin approved the customer's cancellation request.";
+      } else {
+        if (request.requestedSchedule) {
+          booking.schedule = request.requestedSchedule;
+        }
+        historyNote =
+          input.note?.trim() ||
+          "Admin approved the customer's reschedule request.";
+      }
+    } else {
+      historyNote =
+        input.note?.trim() ||
+        `Admin declined the customer's ${request.type} request.`;
+    }
+
+    booking.customerRequest = {
+      ...request,
+      status: input.decision,
+      respondedAt: new Date().toISOString(),
+      respondedByUserId: changedByUserId,
+      adminNote: input.note?.trim() || null,
+    };
+
+    await bookingRepository().save(booking);
+    await createStatusHistoryEntry({
+      bookingId: booking.id,
+      changedByUserId,
+      fromStatus: previousStatus,
+      toStatus: booking.status,
+      note: historyNote,
+    });
 
     return booking;
   },

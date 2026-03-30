@@ -10,6 +10,7 @@ import {
 } from "typeorm";
 import {
   BookingAddress,
+  BookingChangeRequest,
   BookingPricing,
   BookingSchedule,
   BookingStatus,
@@ -69,6 +70,9 @@ export class Booking {
 
   @Column({ type: "text", nullable: true })
   notes!: string | null;
+
+  @Column({ type: "simple-json", nullable: true })
+  customerRequest!: BookingChangeRequest | null;
 
   @Column({ type: "float", default: 0 })
   subtotal!: number;

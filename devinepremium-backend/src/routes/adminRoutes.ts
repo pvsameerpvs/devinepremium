@@ -17,6 +17,11 @@ const updatePaymentStatusSchema = z.object({
   status: z.enum(PAYMENT_STATUSES),
 });
 
+const resolveCustomerRequestSchema = z.object({
+  decision: z.enum(["approved", "declined"]),
+  note: z.string().optional(),
+});
+
 router.use(authenticate, requireAdmin);
 
 router.get(
@@ -75,6 +80,23 @@ router.patch(
     res.json({
       message: "Payment status updated successfully.",
       payment,
+    });
+  }),
+);
+
+router.patch(
+  "/bookings/:bookingId/customer-request",
+  asyncHandler(async (req, res) => {
+    const input = resolveCustomerRequestSchema.parse(req.body);
+    const booking = await bookingService.resolveCustomerRequest(
+      String(req.params.bookingId),
+      req.authUser!.id,
+      input,
+    );
+
+    res.json({
+      message: "Customer request updated successfully.",
+      booking,
     });
   }),
 );

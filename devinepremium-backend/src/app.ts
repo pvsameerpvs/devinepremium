@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import accountRoutes from "./routes/accountRoutes";
 import { env } from "./config/env";
 import adminRoutes from "./routes/adminRoutes";
 import authRoutes from "./routes/authRoutes";
@@ -32,6 +33,7 @@ export function createApp() {
   });
 
   app.use("/api/v1/auth", authRoutes);
+  app.use("/api/v1/account", accountRoutes);
   app.use("/api/v1/bookings", bookingRoutes);
   app.use("/api/v1/payments", paymentRoutes);
   app.use("/api/v1/admin", adminRoutes);

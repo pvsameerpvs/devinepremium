@@ -12,6 +12,21 @@ export type {
   PaymentStatus,
 } from "@devinepremium/shared";
 
+export const BOOKING_CHANGE_REQUEST_TYPES = [
+  "cancel",
+  "reschedule",
+] as const;
+export type BookingChangeRequestType =
+  (typeof BOOKING_CHANGE_REQUEST_TYPES)[number];
+
+export const BOOKING_CHANGE_REQUEST_STATUSES = [
+  "pending",
+  "approved",
+  "declined",
+] as const;
+export type BookingChangeRequestStatus =
+  (typeof BOOKING_CHANGE_REQUEST_STATUSES)[number];
+
 export interface BookingAddress {
   location: string;
   building?: string;
@@ -45,4 +60,27 @@ export interface BookingContact {
   email: string;
   phone?: string;
   instructions?: string;
+}
+
+export interface SavedAddressInput extends BookingAddress {
+  label: string;
+  isDefault?: boolean;
+}
+
+export interface SavedAddressRecord extends SavedAddressInput {
+  id: string;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface BookingChangeRequest {
+  type: BookingChangeRequestType;
+  status: BookingChangeRequestStatus;
+  note?: string | null;
+  requestedSchedule?: BookingSchedule | null;
+  createdAt: string;
+  respondedAt?: string | null;
+  respondedByUserId?: string | null;
+  adminNote?: string | null;
 }

@@ -45,6 +45,24 @@ const createBookingSchema = z.object({
       }),
     ),
   }),
+  saveAddress: z
+    .object({
+      label: z.string().min(2),
+      isDefault: z.boolean().optional(),
+    })
+    .optional(),
+});
+
+const customerCancelSchema = z.object({
+  note: z.string().optional(),
+});
+
+const customerRescheduleSchema = z.object({
+  schedule: z.object({
+    date: z.string().min(1),
+    timeSlot: z.string().min(1),
+  }),
+  note: z.string().optional(),
 });
 
 router.post(
@@ -90,6 +108,42 @@ router.get(
         role: user.role,
       },
       bookings,
+    });
+  }),
+);
+
+router.post(
+  "/:bookingId/cancel-request",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const input = customerCancelSchema.parse(req.body);
+    const booking = await bookingService.requestCustomerCancel(
+      String(req.params.bookingId),
+      req.authUser!.id,
+      input.note,
+    );
+
+    res.json({
+      message: "Cancellation request sent successfully.",
+      booking,
+    });
+  }),
+);
+
+router.post(
+  "/:bookingId/reschedule-request",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const input = customerRescheduleSchema.parse(req.body);
+    const booking = await bookingService.requestCustomerReschedule(
+      String(req.params.bookingId),
+      req.authUser!.id,
+      input,
+    );
+
+    res.json({
+      message: "Reschedule request sent successfully.",
+      booking,
     });
   }),
 );

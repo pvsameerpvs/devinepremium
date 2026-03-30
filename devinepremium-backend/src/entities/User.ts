@@ -9,6 +9,7 @@ import {
 import { Booking } from "./Booking";
 import { BookingStatusHistory } from "./BookingStatusHistory";
 import { UserRole } from "../types/domain";
+import { SavedAddress } from "./SavedAddress";
 
 @Entity("users")
 export class User {
@@ -23,6 +24,9 @@ export class User {
 
   @Column({ type: "varchar", length: 255, nullable: true })
   phone!: string | null;
+
+  @Column({ type: "text", nullable: true })
+  defaultInstructions!: string | null;
 
   @Column({ type: "varchar", length: 255, select: false })
   passwordHash!: string;
@@ -41,4 +45,7 @@ export class User {
 
   @OneToMany(() => BookingStatusHistory, (history) => history.changedBy)
   changedStatuses!: BookingStatusHistory[];
+
+  @OneToMany(() => SavedAddress, (savedAddress) => savedAddress.user)
+  savedAddresses!: SavedAddress[];
 }

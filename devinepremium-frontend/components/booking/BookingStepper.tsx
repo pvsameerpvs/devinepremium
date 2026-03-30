@@ -30,6 +30,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { type CustomerAccountResponse, type SavedAddressRecord } from "@/lib/account";
+import { CUSTOMER_TIME_SLOTS } from "@/lib/booking";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/api";
 import { getStoredUserSession } from "@/lib/auth";
@@ -75,6 +77,21 @@ function formatAED(n: number) {
   });
 }
 
+function formatAddressLabel(address: SavedAddressRecord) {
+  return [address.label, address.location, address.city].filter(Boolean).join(" • ");
+}
+
+function formatAddressLine(address: {
+  building?: string | null;
+  apartment?: string | null;
+  location: string;
+  city: string;
+}) {
+  return [address.building, address.apartment, address.location, address.city]
+    .filter(Boolean)
+    .join(", ");
+}
+
 const STEPS = [
   { id: "service", title: "Service Details", icon: CreditCard },
   { id: "address", title: "Address", icon: MapPin },
@@ -88,6 +105,12 @@ export function BookingStepper({ service }: BookingStepperProps) {
   const [bookingError, setBookingError] = useState("");
   const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
   const [accountEmail, setAccountEmail] = useState("");
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddressRecord[]>([]);
+  const [selectedSavedAddressId, setSelectedSavedAddressId] = useState("");
+  const [isLoadingAccountData, setIsLoadingAccountData] = useState(false);
+  const [saveCurrentAddress, setSaveCurrentAddress] = useState(false);
+  const [saveAddressLabel, setSaveAddressLabel] = useState("");
+  const [saveAddressAsDefault, setSaveAddressAsDefault] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [isLeafletReady, setIsLeafletReady] = useState(false);
   const [locationError, setLocationError] = useState("");
@@ -258,6 +281,27 @@ export function BookingStepper({ service }: BookingStepperProps) {
   ]
     .filter(Boolean)
     .join(", ");
+
+  const applySavedAddress = (address: SavedAddressRecord) => {
+    setSelectedSavedAddressId(address.id);
+    setSaveCurrentAddress(false);
+    setSaveAddressLabel("");
+    setSaveAddressAsDefault(false);
+    setPlaceQuery(formatAddressLabel(address));
+    setFormData((prev: any) => ({
+      ...prev,
+      address: {
+        ...prev.address,
+        location: address.location,
+        building: address.building || "",
+        apartment: address.apartment || "",
+        city: address.city,
+        mapLink: address.mapLink || "",
+        lat: address.lat || "",
+        lng: address.lng || "",
+      },
+    }));
+  };
   const hasPinnedCoords =
     Number.isFinite(Number(formData.address.lat)) && Number.isFinite(Number(formData.address.lng));
 
@@ -351,6 +395,80 @@ export function BookingStepper({ service }: BookingStepperProps) {
         phone: prev.contact.phone || session.user.phone || "",
       },
     }));
+
+    let isActive = true;
+    setIsLoadingAccountData(true);
+
+    void apiRequest<CustomerAccountResponse>("/api/v1/account", {
+      method: "GET",
+      token: session.token,
+    })
+      .then((account) => {
+        if (!isActive) {
+          return;
+        }
+
+        setSavedAddresses(account.savedAddresses);
+        const defaultAddress = account.savedAddresses.find(
+          (address) => address.isDefault,
+        );
+        setFormData((prev: any) => {
+          const shouldApplyDefaultAddress =
+            defaultAddress &&
+            !prev.address.city &&
+            !prev.address.location &&
+            !prev.address.building &&
+            !prev.address.apartment;
+
+          return {
+            ...prev,
+            address:
+              shouldApplyDefaultAddress && defaultAddress
+                ? {
+                    ...prev.address,
+                    location: defaultAddress.location,
+                    building: defaultAddress.building || "",
+                    apartment: defaultAddress.apartment || "",
+                    city: defaultAddress.city,
+                    mapLink: defaultAddress.mapLink || "",
+                    lat: defaultAddress.lat || "",
+                    lng: defaultAddress.lng || "",
+                  }
+                : prev.address,
+            contact: {
+              ...prev.contact,
+              fullName: prev.contact.fullName || account.user.fullName,
+              email: prev.contact.email || account.user.email,
+              phone: prev.contact.phone || account.user.phone || "",
+              instructions:
+                prev.contact.instructions ||
+                account.user.defaultInstructions ||
+                "",
+            },
+          };
+        });
+
+        if (defaultAddress) {
+          setSelectedSavedAddressId((current) => current || defaultAddress.id);
+          setPlaceQuery((current) => current || formatAddressLabel(defaultAddress));
+        }
+      })
+      .catch(() => {
+        if (!isActive) {
+          return;
+        }
+
+        setSavedAddresses([]);
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsLoadingAccountData(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   const redirectToLogin = () => {
@@ -599,6 +717,17 @@ export function BookingStepper({ service }: BookingStepperProps) {
             email: session.user.email,
           },
           paymentMethod: formData.payment.method,
+          saveAddress:
+            saveCurrentAddress && formData.address.city && formData.address.location
+              ? {
+                  label:
+                    saveAddressLabel.trim() ||
+                    [formData.address.location, formData.address.city]
+                      .filter(Boolean)
+                      .join(" - "),
+                  isDefault: saveAddressAsDefault,
+                }
+              : undefined,
           pricing: {
             subtotal,
             discount,
@@ -824,6 +953,63 @@ export function BookingStepper({ service }: BookingStepperProps) {
 
   const renderAddressStep = () => (
     <div className="grid gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
+      {savedAddresses.length > 0 && (
+        <div className="rounded-2xl border border-cyan-100 bg-cyan-50/60 p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">
+                Saved addresses
+              </p>
+              <p className="mt-2 text-sm text-slate-600">
+                Reuse one of your saved locations for a faster booking.
+              </p>
+            </div>
+            {isLoadingAccountData && (
+              <p className="text-xs font-medium text-cyan-700">
+                Loading saved addresses...
+              </p>
+            )}
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {savedAddresses.map((address) => {
+              const isSelected = selectedSavedAddressId === address.id;
+
+              return (
+                <button
+                  key={address.id}
+                  type="button"
+                  onClick={() => applySavedAddress(address)}
+                  className={cn(
+                    "rounded-2xl border p-4 text-left transition",
+                    isSelected
+                      ? "border-[#00B4D8] bg-white shadow-sm"
+                      : "border-cyan-100 bg-white/80 hover:border-cyan-200",
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-slate-900">
+                      {address.label}
+                    </p>
+                    {address.isDefault && (
+                      <span className="rounded-full bg-cyan-100 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-700">
+                        Default
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">
+                    {formatAddressLine(address)}
+                  </p>
+                  <p className="mt-3 text-xs font-medium text-cyan-700">
+                    {isSelected ? "Address selected" : "Use this address"}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-2">
         <Label htmlFor="city">City</Label>
         <Select 
@@ -1004,6 +1190,65 @@ export function BookingStepper({ service }: BookingStepperProps) {
           Click anywhere on the map to drop pin and auto fill address. You can also search place or use current location.
         </p>
       </div>
+
+      {accountEmail && (
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+          <label className="flex items-start gap-3">
+            <Checkbox
+              checked={saveCurrentAddress}
+              onCheckedChange={(checked) => {
+                const enabled = checked === true;
+                setSaveCurrentAddress(enabled);
+                if (!enabled) {
+                  setSaveAddressLabel("");
+                  setSaveAddressAsDefault(false);
+                }
+              }}
+            />
+            <div>
+              <p className="text-sm font-semibold text-slate-900">
+                Save this address to my account
+              </p>
+              <p className="mt-1 text-sm text-slate-600">
+                Use it again next time without typing the full address.
+              </p>
+            </div>
+          </label>
+
+          {saveCurrentAddress && (
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-2 sm:col-span-2">
+                <span className="text-sm font-medium text-slate-700">
+                  Address label
+                </span>
+                <Input
+                  value={saveAddressLabel}
+                  onChange={(event) => setSaveAddressLabel(event.target.value)}
+                  className="h-12"
+                  placeholder="Home, Office, Villa..."
+                />
+              </label>
+
+              <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 sm:col-span-2">
+                <Checkbox
+                  checked={saveAddressAsDefault}
+                  onCheckedChange={(checked) =>
+                    setSaveAddressAsDefault(checked === true)
+                  }
+                />
+                <div>
+                  <p className="text-sm font-medium text-slate-900">
+                    Make this my default address
+                  </p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    We will prefill this location the next time you book.
+                  </p>
+                </div>
+              </label>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -1044,7 +1289,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
             >
                 <SelectTrigger className="h-12 border-gray-300"><SelectValue placeholder="Select time" /></SelectTrigger>
                 <SelectContent>
-                    {["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"].map(time => (
+                    {CUSTOMER_TIME_SLOTS.map(time => (
                         <SelectItem key={time} value={time}>{time} {(parseInt(time) < 12) ? 'AM' : 'PM'}</SelectItem>
                     ))}
                 </SelectContent>
