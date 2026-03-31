@@ -14,7 +14,7 @@ export function ProfilePanel({
   isSaving: boolean;
 }) {
   return (
-    <section className={`${shellCardClass} p-6`}>
+    <section className={`${shellCardClass} p-5 sm:p-6`}>
       <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">
@@ -28,7 +28,7 @@ export function ProfilePanel({
           </p>
         </div>
 
-        <div className="rounded-2xl bg-slate-50 px-4 py-3">
+        <div className="rounded-2xl bg-slate-50 px-4 py-3 sm:max-w-[260px]">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
             Booking account
           </p>
@@ -91,7 +91,7 @@ export function ProfilePanel({
           type="button"
           onClick={() => void onSave()}
           disabled={isSaving}
-          className="inline-flex items-center justify-center rounded-full bg-[#00B4D8] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0097b7] disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex w-full items-center justify-center rounded-full bg-[#00B4D8] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0097b7] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
         >
           {isSaving ? "Saving..." : "Save changes"}
         </button>

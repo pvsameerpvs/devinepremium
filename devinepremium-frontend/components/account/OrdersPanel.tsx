@@ -164,11 +164,11 @@ export function OrdersPanel({
         </button>
       </div>
 
-      <div className="inline-flex flex-wrap gap-2 rounded-full border border-slate-200 bg-white p-1">
+      <div className="grid gap-2 rounded-[24px] border border-slate-200 bg-white p-1 sm:inline-flex sm:flex-wrap">
         <button
           type="button"
           onClick={() => setOrdersTab("history")}
-          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+          className={`rounded-full px-4 py-2 text-sm font-medium transition sm:min-w-[180px] ${
             ordersTab === "history"
               ? "bg-slate-900 text-white"
               : "text-slate-600 hover:text-slate-900"
@@ -179,7 +179,7 @@ export function OrdersPanel({
         <button
           type="button"
           onClick={() => setOrdersTab("actions")}
-          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+          className={`rounded-full px-4 py-2 text-sm font-medium transition sm:min-w-[180px] ${
             ordersTab === "actions"
               ? "bg-[#00B4D8] text-white"
               : "text-slate-600 hover:text-slate-900"
@@ -236,7 +236,7 @@ export function OrdersPanel({
                 </div>
               </div>
 
-              <div className="grid gap-6 border-t border-slate-100 px-6 py-6 xl:grid-cols-[1.04fr_0.96fr]">
+              <div className="grid gap-6 border-t border-slate-100 px-5 py-5 sm:px-6 sm:py-6 xl:grid-cols-[1.04fr_0.96fr]">
                 <div className="space-y-5">
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="rounded-[24px] bg-slate-50 p-5">
@@ -291,13 +291,13 @@ export function OrdersPanel({
                     </div>
                   )}
 
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                     {booking.paymentMethod === "online" &&
                       booking.paymentStatus !== "paid" &&
                       firstPayment && (
                         <Link
                           href={`/payment/checkout?paymentId=${firstPayment.id}`}
-                          className="inline-flex rounded-full bg-[#7B2D8B] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#632271]"
+                          className="inline-flex w-full items-center justify-center rounded-full bg-[#7B2D8B] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#632271] sm:w-auto"
                         >
                           Continue payment
                         </Link>
@@ -308,14 +308,14 @@ export function OrdersPanel({
                         <button
                           type="button"
                           onClick={() => openReschedulePanel(booking)}
-                          className="rounded-full border border-cyan-200 px-5 py-3 text-sm font-semibold text-cyan-700 transition hover:border-cyan-300 hover:text-cyan-800"
+                          className="inline-flex w-full items-center justify-center rounded-full border border-cyan-200 px-5 py-3 text-sm font-semibold text-cyan-700 transition hover:border-cyan-300 hover:text-cyan-800 sm:w-auto"
                         >
                           Request reschedule
                         </button>
                         <button
                           type="button"
                           onClick={() => openCancelPanel(booking)}
-                          className="rounded-full border border-red-200 px-5 py-3 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:text-red-700"
+                          className="inline-flex w-full items-center justify-center rounded-full border border-red-200 px-5 py-3 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:text-red-700 sm:w-auto"
                         >
                           Request cancel
                         </button>
@@ -394,7 +394,7 @@ export function OrdersPanel({
                         </p>
                       )}
 
-                      <div className="mt-5 flex flex-wrap gap-3">
+                      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                         <button
                           type="button"
                           onClick={() =>
@@ -403,7 +403,7 @@ export function OrdersPanel({
                               : void submitRescheduleRequest(booking.id)
                           }
                           disabled={Boolean(activeMutation)}
-                          className="rounded-full bg-[#00B4D8] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0097b7] disabled:cursor-not-allowed disabled:opacity-70"
+                          className="inline-flex w-full items-center justify-center rounded-full bg-[#00B4D8] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0097b7] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
                         >
                           {activeMutation ? "Sending request..." : "Send request"}
                         </button>
@@ -413,7 +413,7 @@ export function OrdersPanel({
                             setActivePanel(null);
                             setInlineMessage("");
                           }}
-                          className="rounded-full border border-slate-200 px-5 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                          className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900 sm:w-auto"
                         >
                           Close
                         </button>

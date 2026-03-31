@@ -296,7 +296,7 @@ export function CustomerAccountPage() {
   }
 
   return (
-    <section className="bg-[linear-gradient(180deg,#f6fbff_0%,#f8fafc_26%,#f8fafc_100%)] px-4 py-10 sm:py-12">
+    <section className="bg-[linear-gradient(180deg,#f6fbff_0%,#f8fafc_26%,#f8fafc_100%)] px-3 py-8 sm:px-4 sm:py-12">
       <div className="mx-auto max-w-7xl">
         <AccountHero session={session} onLogout={handleLogout} />
 
@@ -314,14 +314,14 @@ export function CustomerAccountPage() {
           </div>
         )}
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <div className="mt-6 grid gap-6 xl:mt-8 xl:grid-cols-[300px_minmax(0,1fr)]">
           <AccountSidebar
             activeSection={activeSection}
             summary={summary}
             onSelect={setActiveSection}
           />
 
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-6">
             {activeSection === "profile" ? (
               <ProfilePanel
                 form={profileForm}

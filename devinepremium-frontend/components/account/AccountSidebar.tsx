@@ -17,31 +17,33 @@ export function AccountSidebar({
   onSelect: (section: AccountSectionId) => void;
 }) {
   return (
-    <aside className={`${shellCardClass} h-fit p-4 lg:sticky lg:top-24`}>
+    <aside className={`${shellCardClass} h-fit p-4 xl:sticky xl:top-24`}>
       <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
           Overview
         </p>
-        <div className="mt-4 space-y-3">
-          <div className="flex items-center justify-between text-sm text-slate-700">
+        <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-1 xl:gap-3">
+          <div className="rounded-2xl bg-white px-3 py-3 text-sm text-slate-700 xl:flex xl:items-center xl:justify-between xl:bg-transparent xl:px-0 xl:py-0">
             <span>Total orders</span>
-            <span className="font-semibold text-slate-900">{summary.total}</span>
+            <span className="mt-1 block font-semibold text-slate-900 xl:mt-0">
+              {summary.total}
+            </span>
           </div>
-          <div className="flex items-center justify-between text-sm text-slate-700">
+          <div className="rounded-2xl bg-white px-3 py-3 text-sm text-slate-700 xl:flex xl:items-center xl:justify-between xl:bg-transparent xl:px-0 xl:py-0">
             <span>Active orders</span>
-            <span className="font-semibold text-slate-900">
+            <span className="mt-1 block font-semibold text-slate-900 xl:mt-0">
               {summary.active}
             </span>
           </div>
-          <div className="flex items-center justify-between text-sm text-slate-700">
+          <div className="rounded-2xl bg-white px-3 py-3 text-sm text-slate-700 xl:flex xl:items-center xl:justify-between xl:bg-transparent xl:px-0 xl:py-0">
             <span>Saved addresses</span>
-            <span className="font-semibold text-slate-900">
+            <span className="mt-1 block font-semibold text-slate-900 xl:mt-0">
               {summary.savedAddresses}
             </span>
           </div>
-          <div className="flex items-center justify-between text-sm text-slate-700">
+          <div className="rounded-2xl bg-white px-3 py-3 text-sm text-slate-700 xl:flex xl:items-center xl:justify-between xl:bg-transparent xl:px-0 xl:py-0">
             <span>Pending requests</span>
-            <span className="font-semibold text-slate-900">
+            <span className="mt-1 block font-semibold text-slate-900 xl:mt-0">
               {summary.pendingRequests}
             </span>
           </div>
@@ -54,13 +56,13 @@ export function AccountSidebar({
         </p>
       </div>
 
-      <nav className="mt-3 space-y-2">
+      <nav className="mt-3 flex gap-2 overflow-x-auto pb-1 xl:block xl:space-y-2 xl:overflow-visible xl:pb-0">
         {accountSectionLinks.map((item, index) => (
           <button
             key={item.id}
             type="button"
             onClick={() => onSelect(item.id)}
-            className={`block w-full rounded-[24px] border px-4 py-4 text-left transition ${
+            className={`block min-w-[240px] rounded-[24px] border px-4 py-4 text-left transition xl:w-full xl:min-w-0 ${
               activeSection === item.id
                 ? "border-cyan-100 bg-cyan-50/90 shadow-sm"
                 : "border-transparent hover:border-slate-200 hover:bg-slate-50"
