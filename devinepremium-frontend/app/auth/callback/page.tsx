@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { Session } from "@supabase/supabase-js";
 import { apiRequest } from "@/lib/api";
 import { saveUserSession, type UserSession } from "@/lib/auth";
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase";
@@ -24,6 +25,68 @@ function getRedirectTarget() {
   return redirect;
 }
 
+async function getSessionFromCallbackUrl() {
+  const supabase = getSupabaseBrowserClient();
+  const currentUrl = new URL(window.location.href);
+  const hashParams = new URLSearchParams(currentUrl.hash.replace(/^#/, ""));
+  const authError =
+    currentUrl.searchParams.get("error_description") ??
+    currentUrl.searchParams.get("error") ??
+    hashParams.get("error_description") ??
+    hashParams.get("error");
+
+  if (authError) {
+    throw new Error(decodeURIComponent(authError.replace(/\+/g, " ")));
+  }
+
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError) {
+    throw sessionError;
+  }
+
+  if (session?.access_token) {
+    return session;
+  }
+
+  return new Promise<Session | null>((resolve, reject) => {
+    const timeoutId = window.setTimeout(async () => {
+      subscription.unsubscribe();
+
+      try {
+        const {
+          data: { session: fallbackSession },
+          error: fallbackError,
+        } = await supabase.auth.getSession();
+
+        if (fallbackError) {
+          reject(fallbackError);
+          return;
+        }
+
+        resolve(fallbackSession);
+      } catch (error) {
+        reject(error);
+      }
+    }, 1500);
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, authSession) => {
+      if (!authSession?.access_token) {
+        return;
+      }
+
+      window.clearTimeout(timeoutId);
+      subscription.unsubscribe();
+      resolve(authSession);
+    });
+  });
+}
+
 export default function AuthCallbackPage() {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -39,15 +102,7 @@ export default function AuthCallbackPage() {
           );
         }
 
-        const supabase = getSupabaseBrowserClient();
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
-
-        if (sessionError) {
-          throw sessionError;
-        }
+        const session = await getSessionFromCallbackUrl();
 
         if (!session?.access_token) {
           throw new Error("Google session was not found after redirect.");

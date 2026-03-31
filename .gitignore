@@ -40,6 +40,11 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# local OAuth / cloud credentials
+client_secret_*.json
+**/client_secret_*.json
+/credentials/
+
 # vercel
 .vercel
 

@@ -56,5 +56,7 @@ npm run dev:backend
 ## Docs
 
 - [Architecture plan](./docs/architecture.md)
+- [Database architecture](./docs/database-architecture.md)
 - [Project structure](./docs/project-structure.md)
 - [Setup guide](./docs/setup.md)
+- [Supabase integration](./docs/supabase-integration.md)
