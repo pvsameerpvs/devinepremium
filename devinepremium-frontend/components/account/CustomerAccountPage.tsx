@@ -263,7 +263,7 @@ export function CustomerAccountPage() {
 
   if (!isReady) {
     return (
-      <section className="bg-slate-50 px-4 py-10 sm:py-12">
+      <section className="bg-slate-50 py-10 sm:py-12">
         <div className="mx-auto max-w-7xl">
           <AccountStateCard
             title="Loading your account"
@@ -276,7 +276,7 @@ export function CustomerAccountPage() {
 
   if (!session) {
     return (
-      <section className="bg-slate-50 px-4 py-10 sm:py-12">
+      <section className="bg-slate-50 py-10 sm:py-12">
         <div className="mx-auto max-w-7xl">
           <AccountStateCard
             title="Login required"
@@ -296,7 +296,7 @@ export function CustomerAccountPage() {
   }
 
   return (
-    <section className="bg-[linear-gradient(180deg,#f6fbff_0%,#f8fafc_26%,#f8fafc_100%)] px-3 py-8 sm:px-4 sm:py-12">
+    <section className="bg-[linear-gradient(180deg,#f6fbff_0%,#f8fafc_26%,#f8fafc_100%)] py-8 sm:py-12">
       <div className="mx-auto max-w-7xl">
         <AccountHero session={session} onLogout={handleLogout} />
 

@@ -40,7 +40,7 @@ export function SavedAddressesPanel({
           <p className="text-xs font-semibold uppercase tracking-[0.26em] text-fuchsia-700">
             Saved addresses
           </p>
-          <h2 className="mt-3 text-2xl font-black text-slate-900">
+          <h2 className="mt-3 text-xl font-black text-slate-900 sm:text-2xl">
             Faster repeat booking
           </h2>
           <p className="mt-3 text-sm leading-7 text-slate-600">
@@ -58,7 +58,7 @@ export function SavedAddressesPanel({
       </div>
 
       {showAddressForm ? (
-        <div className="mt-6 rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mt-6 rounded-[26px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">
             {editingAddressId ? "Edit address" : "New address"}
           </p>
@@ -66,10 +66,10 @@ export function SavedAddressesPanel({
             Keep one clean address saved so checkout is faster next time.
           </p>
 
-          <div className="mt-5 grid gap-4 lg:grid-cols-2">
-            <label className="grid gap-2 lg:col-span-2">
-              <span className="text-sm font-semibold text-slate-700">Label</span>
-              <input
+            <div className="mt-5 grid gap-4 xl:grid-cols-2">
+              <label className="grid gap-2 lg:col-span-2">
+                <span className="text-sm font-semibold text-slate-700">Label</span>
+                <input
                 value={form.label}
                 onChange={(event) => onChange("label", event.target.value)}
                 className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-fuchsia-400 focus:ring-4 focus:ring-fuchsia-50"
@@ -177,7 +177,7 @@ export function SavedAddressesPanel({
           {addresses.map((address) => (
             <article
               key={address.id}
-              className="rounded-[24px] border border-slate-200 bg-slate-50 p-5"
+              className="rounded-[24px] border border-slate-200 bg-slate-50 p-4 sm:p-5"
             >
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
@@ -199,7 +199,7 @@ export function SavedAddressesPanel({
                   <button
                     type="button"
                     onClick={() => onEdit(address)}
-                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                    className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900 sm:w-auto"
                   >
                     Edit
                   </button>
@@ -207,7 +207,7 @@ export function SavedAddressesPanel({
                     type="button"
                     onClick={() => void onDelete(address.id)}
                     disabled={activeMutation === `delete-address:${address.id}`}
-                    className="rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition hover:border-red-300 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="w-full rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition hover:border-red-300 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
                   >
                     {activeMutation === `delete-address:${address.id}`
                       ? "Deleting..."

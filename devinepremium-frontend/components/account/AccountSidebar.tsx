@@ -56,13 +56,13 @@ export function AccountSidebar({
         </p>
       </div>
 
-      <nav className="mt-3 flex gap-2 overflow-x-auto pb-1 xl:block xl:space-y-2 xl:overflow-visible xl:pb-0">
+      <nav className="mt-3 grid gap-2 md:grid-cols-2 xl:block xl:space-y-2">
         {accountSectionLinks.map((item, index) => (
           <button
             key={item.id}
             type="button"
             onClick={() => onSelect(item.id)}
-            className={`block min-w-[240px] rounded-[24px] border px-4 py-4 text-left transition xl:w-full xl:min-w-0 ${
+            className={`block w-full rounded-[24px] border px-4 py-4 text-left transition ${
               activeSection === item.id
                 ? "border-cyan-100 bg-cyan-50/90 shadow-sm"
                 : "border-transparent hover:border-slate-200 hover:bg-slate-50"

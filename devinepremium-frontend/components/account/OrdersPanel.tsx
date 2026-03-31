@@ -25,6 +25,39 @@ function badgeClass(tone: "cyan" | "fuchsia" | "amber") {
   return "bg-amber-100 text-amber-700";
 }
 
+function toDisplayText(value: string) {
+  return formatStatusLabel(value).replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function getNextStepMessage(booking: BookingRecord) {
+  if (booking.customerRequest?.status === "pending") {
+    return "Your request is waiting for admin review.";
+  }
+
+  if (booking.paymentMethod === "online" && booking.paymentStatus !== "paid") {
+    return "Finish the online payment to confirm this booking.";
+  }
+
+  switch (booking.status) {
+    case "pending":
+      return "Your booking is received and waiting for confirmation.";
+    case "accepted":
+      return "Your booking is accepted. The team will prepare the visit.";
+    case "scheduled":
+      return "Your service slot is confirmed and scheduled.";
+    case "in_progress":
+      return "The service is currently in progress.";
+    case "completed":
+      return "This booking is completed successfully.";
+    case "cancelled":
+      return "This booking has been cancelled.";
+    case "rejected":
+      return "This booking could not be accepted.";
+    default:
+      return "Track the latest updates for this booking here.";
+  }
+}
+
 export function OrdersPanel({
   bookings,
   mutateBookings,
@@ -53,6 +86,12 @@ export function OrdersPanel({
       : bookings.filter((booking) => hasCustomerAction(booking));
   const actionCount = bookings.filter((booking) =>
     hasCustomerAction(booking),
+  ).length;
+  const paidCount = bookings.filter(
+    (booking) => booking.paymentStatus === "paid",
+  ).length;
+  const liveCount = bookings.filter((booking) =>
+    ["pending", "accepted", "scheduled", "in_progress"].includes(booking.status),
   ).length;
 
   function openCancelPanel(booking: BookingRecord) {
@@ -147,12 +186,12 @@ export function OrdersPanel({
           <p className="text-xs font-semibold uppercase tracking-[0.26em] text-cyan-700">
             Orders
           </p>
-          <h2 className="mt-3 text-3xl font-black text-slate-900">
+          <h2 className="mt-3 text-2xl font-black text-slate-900 sm:text-3xl">
             Booking history and order actions
           </h2>
           <p className="mt-2 text-sm text-slate-600">
-            Follow progress, continue payment, or send a request when a booking
-            needs attention.
+            See every booking in one place, check the next step quickly, and
+            take action only when needed.
           </p>
         </div>
         <button
@@ -189,28 +228,58 @@ export function OrdersPanel({
         </button>
       </div>
 
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-[24px] border border-slate-200 bg-white px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Total bookings
+          </p>
+          <p className="mt-2 text-2xl font-black text-slate-900">
+            {bookings.length}
+          </p>
+        </div>
+        <div className="rounded-[24px] border border-slate-200 bg-white px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700">
+            Active bookings
+          </p>
+          <p className="mt-2 text-2xl font-black text-slate-900">{liveCount}</p>
+        </div>
+        <div className="rounded-[24px] border border-slate-200 bg-white px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-fuchsia-700">
+            Fully paid
+          </p>
+          <p className="mt-2 text-2xl font-black text-slate-900">{paidCount}</p>
+        </div>
+      </div>
+
       {filteredBookings.length ? (
         filteredBookings.map((booking) => {
           const firstPayment = booking.payments[0];
           const requestStatus = booking.customerRequest?.status;
           const hasPendingRequest = requestStatus === "pending";
           const isActionOpen = activePanel?.bookingId === booking.id;
+          const nextStepMessage = getNextStepMessage(booking);
 
           return (
             <article
               key={booking.id}
               className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-[0_14px_42px_rgba(15,23,42,0.06)]"
             >
-              <div className="flex flex-col gap-4 px-6 pb-4 pt-6 md:flex-row md:items-start md:justify-between">
-                <div>
+              <div className="flex flex-col gap-4 px-4 pb-4 pt-5 sm:px-6 sm:pt-6 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
                     {booking.bookingReference}
                   </p>
-                  <h3 className="mt-2 text-2xl font-bold text-slate-900">
+                  <h3 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">
                     {booking.serviceTitle}
                   </h3>
                   <p className="mt-2 text-sm text-slate-600">
                     {booking.schedule.date} at {booking.schedule.timeSlot}
+                  </p>
+                  <p className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                    <span className="font-semibold text-slate-900">
+                      What happens next:
+                    </span>{" "}
+                    {nextStepMessage}
                   </p>
                 </div>
 
@@ -218,19 +287,19 @@ export function OrdersPanel({
                   <span
                     className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${badgeClass("cyan")}`}
                   >
-                    {formatStatusLabel(booking.status)}
+                    {toDisplayText(booking.status)}
                   </span>
                   <span
                     className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${badgeClass("fuchsia")}`}
                   >
-                    {formatStatusLabel(booking.paymentStatus)}
+                    {toDisplayText(booking.paymentStatus)}
                   </span>
                   {booking.customerRequest && (
                     <span
                       className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${badgeClass("amber")}`}
                     >
-                      {booking.customerRequest.type} request{" "}
-                      {booking.customerRequest.status}
+                      {toDisplayText(booking.customerRequest.type)} request{" "}
+                      {toDisplayText(booking.customerRequest.status)}
                     </span>
                   )}
                 </div>
@@ -241,11 +310,11 @@ export function OrdersPanel({
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="rounded-[24px] bg-slate-50 p-5">
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                        Order details
+                        Booking summary
                       </p>
                       <div className="mt-3 space-y-2 text-sm text-slate-700">
                         <p>Total: {booking.totalAmount.toFixed(2)} AED</p>
-                        <p>Payment method: {booking.paymentMethod}</p>
+                        <p>Payment method: {toDisplayText(booking.paymentMethod)}</p>
                         <p>Address: {formatAddressLine(booking.address)}</p>
                         <p>Contact: {booking.contactName}</p>
                       </div>
@@ -253,11 +322,11 @@ export function OrdersPanel({
 
                     <div className="rounded-[24px] bg-slate-50 p-5">
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                        Current status
+                        Current progress
                       </p>
                       <div className="mt-3 space-y-2 text-sm text-slate-700">
-                        <p>Booking: {formatStatusLabel(booking.status)}</p>
-                        <p>Payment: {formatStatusLabel(booking.paymentStatus)}</p>
+                        <p>Booking: {toDisplayText(booking.status)}</p>
+                        <p>Payment: {toDisplayText(booking.paymentStatus)}</p>
                         <p>Date: {booking.schedule.date}</p>
                         <p>Time: {booking.schedule.timeSlot}</p>
                       </div>
@@ -271,11 +340,11 @@ export function OrdersPanel({
                       </p>
                       <div className="mt-3 space-y-2 text-sm text-slate-700">
                         <p>
-                          Type: {formatStatusLabel(booking.customerRequest.type)}
+                          Type: {toDisplayText(booking.customerRequest.type)}
                         </p>
                         <p>
                           Status:{" "}
-                          {formatStatusLabel(booking.customerRequest.status)}
+                          {toDisplayText(booking.customerRequest.status)}
                         </p>
                         {booking.customerRequest.requestedSchedule && (
                           <p>
@@ -424,7 +493,7 @@ export function OrdersPanel({
 
                 <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
                   <p className="text-sm font-semibold text-slate-900">
-                    Order timeline
+                    Recent updates
                   </p>
 
                   <div className="mt-4 space-y-3">
@@ -436,9 +505,9 @@ export function OrdersPanel({
                         >
                           <p className="font-medium">
                             {entry.fromStatus
-                              ? `${entry.fromStatus} -> `
+                              ? `${toDisplayText(entry.fromStatus)} -> `
                               : ""}
-                            {entry.toStatus}
+                            {toDisplayText(entry.toStatus)}
                           </p>
                           <p className="mt-1 text-xs text-slate-500">
                             {new Date(entry.createdAt).toLocaleString()}

@@ -20,7 +20,7 @@ export function ProfilePanel({
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">
             My profile
           </p>
-          <h2 className="mt-2 text-2xl font-black text-slate-900">
+          <h2 className="mt-2 text-xl font-black text-slate-900 sm:text-2xl">
             Personal details
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -38,7 +38,7 @@ export function ProfilePanel({
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <label className="grid gap-2">
           <span className="text-sm font-medium text-slate-700">Full name</span>
           <input
