@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { BOOKING_STATUSES, PAYMENT_STATUSES } from "@devinepremium/shared";
 import { formatAddressLine, formatStatusLabel, type AdminBooking, type StaffMember } from "@/lib/dashboard";
 
@@ -33,9 +34,14 @@ export function AdminBookingCard({
   const request = booking.customerRequest;
   const requestStatus = request?.status;
 
+  const [isExpanded, setIsExpanded] = useState(requestStatus === "pending");
+
   return (
     <article className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_20px_70px_rgba(15,23,42,0.08)]">
-      <div className="flex flex-col gap-4 border-b border-slate-100 bg-slate-50 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+      <div 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex cursor-pointer select-none flex-col gap-4 border-b border-slate-100 bg-slate-50 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between transition-colors hover:bg-slate-100 focus:bg-slate-100"
+      >
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
             {booking.bookingReference}
@@ -65,10 +71,14 @@ export function AdminBookingCard({
               Unassigned
             </span>
           )}
+          <div className="ml-2 flex h-8 w-8 items-center justify-center rounded-full bg-white border border-slate-200 text-slate-500 shadow-sm transition-transform duration-200" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-6 px-5 py-5 sm:px-6 sm:py-6 xl:grid-cols-[1fr_0.95fr]">
+      {isExpanded && (
+      <div className="grid gap-6 px-5 py-5 sm:px-6 sm:py-6 xl:grid-cols-[1fr_0.95fr] animate-in fade-in slide-in-from-top-2">
         <div className="space-y-6">
           {request && (
             <div
@@ -257,6 +267,7 @@ export function AdminBookingCard({
           </div>
         </div>
       </div>
+      )}
     </article>
   );
 }
