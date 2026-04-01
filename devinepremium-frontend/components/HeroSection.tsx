@@ -1,5 +1,7 @@
-import Link from "next/link";
-import Image from "next/image";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { getStoredUserSession } from "@/lib/auth";
 import { SERVICES } from "@/lib/services";
 import {
   Card,
@@ -9,15 +11,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  ArrowRight,
   ChevronRight,
-  Clock,
-  Shield,
   Sparkles,
-  Star,
 } from "lucide-react";
 
 export function HeroSection() {
+  const router = useRouter();
+
+  function handleServiceClick(slug: string) {
+    const session = getStoredUserSession();
+    if (!session?.token) {
+      router.push(`/login?redirect=${encodeURIComponent(`/book/${slug}`)}`);
+    } else {
+      router.push(`/book/${slug}`);
+    }
+  }
+
   return (
     <section className="relative">
       <div className="absolute inset-0 pointer-events-none -z-10">
@@ -42,7 +51,12 @@ export function HeroSection() {
 
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {SERVICES.map((service) => (
-              <Link key={service.id} href={`/book/${service.slug}`} className="group block">
+              <button 
+                key={service.id} 
+                type="button" 
+                onClick={() => handleServiceClick(service.slug)}
+                className="group block text-left"
+              >
                 <Card className="h-full rounded-3xl border-border bg-card dp-card-hover overflow-hidden">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-3">
@@ -78,7 +92,7 @@ export function HeroSection() {
                     </div>
                   </CardContent>
                 </Card>
-              </Link>
+              </button>
             ))}
           </div>
         </div>
