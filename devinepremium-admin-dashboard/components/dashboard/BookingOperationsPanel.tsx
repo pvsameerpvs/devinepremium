@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { AdminBooking, StaffMember } from "@/lib/dashboard";
 import { getAvailableStaffForDate } from "@/lib/dashboard";
 import { AdminBookingCard } from "./AdminBookingCard";
@@ -25,9 +26,18 @@ export function BookingOperationsPanel({
   onUpdateBookingStatus: (bookingId: string, status: string) => Promise<void>;
   onUpdatePaymentStatus: (paymentId: string, status: string) => Promise<void>;
 }) {
+  const [activeTab, setActiveTab] = useState<"today" | "all">("today");
+
+  const today = new Date();
+  const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  const displayBookings = activeTab === "today"
+    ? bookings.filter((b) => b.schedule.date === todayString)
+    : bookings;
+
   return (
     <section className="space-y-4">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between border-b border-slate-100 pb-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#A65A2A]">
             Booking operations
@@ -38,8 +48,34 @@ export function BookingOperationsPanel({
         </div>
       </div>
 
-      {bookings.length ? (
-        bookings.map((booking) => {
+      <div className="flex flex-wrap gap-2 pt-2 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab("today")}
+          className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+            activeTab === "today"
+              ? "bg-slate-800 text-white shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+          }`}
+        >
+          Today
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("all")}
+          className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+            activeTab === "all"
+              ? "bg-slate-800 text-white shadow-sm"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+          }`}
+        >
+          All
+        </button>
+      </div>
+
+      <div className="space-y-4">
+      {displayBookings.length ? (
+        displayBookings.map((booking) => {
           const assignableStaff = getAssignableStaff(
             booking,
             staffMembers,
@@ -64,13 +100,18 @@ export function BookingOperationsPanel({
       ) : (
         <div className="rounded-[28px] border border-slate-200 bg-white p-10 text-center shadow-sm">
           <p className="text-lg font-semibold text-slate-900">
-            No bookings match this search
+            {activeTab === "today" 
+              ? "No bookings scheduled for today." 
+              : "No bookings match this search."}
           </p>
           <p className="mt-3 text-sm text-slate-600">
-            Try customer name, email, booking reference, or booking ID.
+            {activeTab === "today" 
+              ? "Enjoy your free time or check the All tab!" 
+              : "Try customer name, email, booking reference, or booking ID."}
           </p>
         </div>
       )}
+      </div>
     </section>
   );
 }
