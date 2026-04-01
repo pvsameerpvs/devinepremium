@@ -32,7 +32,19 @@ export function BookingOperationsPanel({
   const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   const displayBookings = activeTab === "today"
-    ? bookings.filter((b) => b.schedule.date === todayString)
+    ? bookings.filter((b) => {
+        const createdDateStr = (b as AdminBooking & { createdAt?: string }).createdAt ?? (b.statusHistory?.length ? b.statusHistory[b.statusHistory.length - 1].createdAt : null);
+        if (createdDateStr) {
+          try {
+            const d = new Date(createdDateStr);
+            const bookingDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+            return bookingDateStr === todayString;
+          } catch {
+            return false;
+          }
+        }
+        return false;
+      })
     : bookings;
 
   return (
@@ -101,12 +113,12 @@ export function BookingOperationsPanel({
         <div className="rounded-[28px] border border-slate-200 bg-white p-10 text-center shadow-sm">
           <p className="text-lg font-semibold text-slate-900">
             {activeTab === "today" 
-              ? "No bookings scheduled for today." 
+              ? "No new orders received today." 
               : "No bookings match this search."}
           </p>
           <p className="mt-3 text-sm text-slate-600">
             {activeTab === "today" 
-              ? "Enjoy your free time or check the All tab!" 
+              ? "Any orders customers place today will appear here." 
               : "Try customer name, email, booking reference, or booking ID."}
           </p>
         </div>
