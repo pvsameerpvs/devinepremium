@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   accountSectionLinks,
   type AccountOverviewStats,
@@ -10,11 +11,9 @@ import {
 export function AccountSidebar({
   activeSection,
   summary,
-  onSelect,
 }: {
   activeSection: AccountSectionId;
   summary: AccountOverviewStats;
-  onSelect: (section: AccountSectionId) => void;
 }) {
   return (
     <aside className={`${shellCardClass} h-fit p-4 xl:sticky xl:top-24`}>
@@ -58,10 +57,9 @@ export function AccountSidebar({
 
       <nav className="mt-3 grid gap-2 md:grid-cols-2 xl:block xl:space-y-2">
         {accountSectionLinks.map((item, index) => (
-          <button
+          <Link
             key={item.id}
-            type="button"
-            onClick={() => onSelect(item.id)}
+            href={`/account/${item.id}`}
             className={`block w-full rounded-[24px] border px-4 py-4 text-left transition ${
               activeSection === item.id
                 ? "border-cyan-100 bg-cyan-50/90 shadow-sm"
@@ -99,7 +97,7 @@ export function AccountSidebar({
                 </p>
               </div>
             </div>
-          </button>
+          </Link>
         ))}
       </nav>
     </aside>

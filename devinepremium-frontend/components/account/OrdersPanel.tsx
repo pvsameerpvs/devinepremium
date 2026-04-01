@@ -1,62 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { apiRequest } from "@/lib/api";
 import type { BookingRecord } from "@/lib/account";
 import type { UserSession } from "@/lib/auth";
 import { CUSTOMER_TIME_SLOTS } from "@/lib/booking";
-import {
-  canManageBooking,
-  formatAddressLine,
-  formatStatusLabel,
-  hasCustomerAction,
-} from "./account-shared";
-
-function badgeClass(tone: "cyan" | "fuchsia" | "amber") {
-  if (tone === "cyan") {
-    return "bg-cyan-100 text-cyan-700";
-  }
-
-  if (tone === "fuchsia") {
-    return "bg-fuchsia-100 text-fuchsia-700";
-  }
-
-  return "bg-amber-100 text-amber-700";
-}
-
-function toDisplayText(value: string) {
-  return formatStatusLabel(value).replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function getNextStepMessage(booking: BookingRecord) {
-  if (booking.customerRequest?.status === "pending") {
-    return "Your request is waiting for admin review.";
-  }
-
-  if (booking.paymentMethod === "online" && booking.paymentStatus !== "paid") {
-    return "Finish the online payment to confirm this booking.";
-  }
-
-  switch (booking.status) {
-    case "pending":
-      return "Your booking is received and waiting for confirmation.";
-    case "accepted":
-      return "Your booking is accepted. The team will prepare the visit.";
-    case "scheduled":
-      return "Your service slot is confirmed and scheduled.";
-    case "in_progress":
-      return "The service is currently in progress.";
-    case "completed":
-      return "This booking is completed successfully.";
-    case "cancelled":
-      return "This booking has been cancelled.";
-    case "rejected":
-      return "This booking could not be accepted.";
-    default:
-      return "Track the latest updates for this booking here.";
-  }
-}
+import { hasCustomerAction } from "./account-shared";
+import { OrdersSummary } from "./OrdersSummary";
+import { OrderCard } from "./OrderCard";
 
 export function OrdersPanel({
   bookings,
@@ -80,19 +31,11 @@ export function OrdersPanel({
   const [activeMutation, setActiveMutation] = useState("");
   const [inlineMessage, setInlineMessage] = useState("");
 
-  const filteredBookings =
-    ordersTab === "history"
-      ? bookings
-      : bookings.filter((booking) => hasCustomerAction(booking));
-  const actionCount = bookings.filter((booking) =>
-    hasCustomerAction(booking),
-  ).length;
-  const paidCount = bookings.filter(
-    (booking) => booking.paymentStatus === "paid",
-  ).length;
-  const liveCount = bookings.filter((booking) =>
-    ["pending", "accepted", "scheduled", "in_progress"].includes(booking.status),
-  ).length;
+  const filteredBookings = ordersTab === "history"
+    ? bookings
+    : bookings.filter((booking) => hasCustomerAction(booking));
+
+  const actionCount = bookings.filter((booking) => hasCustomerAction(booking)).length;
 
   function openCancelPanel(booking: BookingRecord) {
     setInlineMessage("");
@@ -114,6 +57,19 @@ export function OrdersPanel({
     });
   }
 
+  function closeActionPanel() {
+    setActivePanel(null);
+    setInlineMessage("");
+  }
+
+  async function submitActionRequest(bookingId: string) {
+    if (activePanel?.type === "cancel") {
+      await submitCancelRequest(bookingId);
+    } else {
+      await submitRescheduleRequest(bookingId);
+    }
+  }
+
   async function submitCancelRequest(bookingId: string) {
     setActiveMutation(`cancel:${bookingId}`);
     setInlineMessage("");
@@ -131,8 +87,12 @@ export function OrdersPanel({
       );
 
       setInlineMessage(response.message);
-      setActivePanel(null);
-      await mutateBookings();
+      if (!response.message.toLowerCase().includes("error")) {
+         setTimeout(() => {
+           setActivePanel(null);
+           mutateBookings();
+         }, 1500);
+      }
     } catch (error) {
       setInlineMessage(
         error instanceof Error ? error.message : "Could not send request.",
@@ -168,8 +128,12 @@ export function OrdersPanel({
       );
 
       setInlineMessage(response.message);
-      setActivePanel(null);
-      await mutateBookings();
+      if (!response.message.toLowerCase().includes("error")) {
+        setTimeout(() => {
+          setActivePanel(null);
+          mutateBookings();
+        }, 1500);
+      }
     } catch (error) {
       setInlineMessage(
         error instanceof Error ? error.message : "Could not send request.",
@@ -180,37 +144,37 @@ export function OrdersPanel({
   }
 
   return (
-    <section className="space-y-4">
-      <div className="flex flex-col gap-3 border-b border-slate-100 pb-5 md:flex-row md:items-end md:justify-between">
+    <section className="space-y-6">
+      <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 md:flex-row md:items-end md:justify-between bg-white p-6 rounded-[28px] shadow-sm">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.26em] text-cyan-700">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#00B4D8]">
             Orders
           </p>
           <h2 className="mt-3 text-2xl font-black text-slate-900 sm:text-3xl">
-            Booking history and order actions
+            Booking history & actions
           </h2>
-          <p className="mt-2 text-sm text-slate-600">
-            See every booking in one place, check the next step quickly, and
-            take action only when needed.
+          <p className="mt-2 text-sm text-slate-600 block max-w-lg leading-relaxed">
+            See every booking in one place, easily check the next step, and 
+            manage your service times directly.
           </p>
         </div>
         <button
           type="button"
           onClick={() => void mutateBookings()}
-          className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+          className="rounded-full border border-[#00B4D8] text-[#00B4D8] px-5 py-2 text-sm font-semibold transition hover:bg-[#00B4D8] hover:text-white shadow-sm flex items-center justify-center min-w-[140px]"
         >
           Refresh orders
         </button>
       </div>
 
-      <div className="grid gap-2 rounded-[24px] border border-slate-200 bg-white p-1 sm:inline-flex sm:flex-wrap">
+      <div className="flex bg-white p-2 rounded-full border border-slate-200 shadow-sm max-w-fit">
         <button
           type="button"
           onClick={() => setOrdersTab("history")}
-          className={`rounded-full px-4 py-2 text-sm font-medium transition sm:min-w-[180px] ${
+          className={`rounded-full px-5 py-2.5 text-sm font-bold transition flex-1 sm:min-w-[180px] ${
             ordersTab === "history"
-              ? "bg-slate-900 text-white"
-              : "text-slate-600 hover:text-slate-900"
+              ? "bg-[#0B132B] text-white shadow-md"
+              : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
           }`}
         >
           Booking history ({bookings.length})
@@ -218,343 +182,71 @@ export function OrdersPanel({
         <button
           type="button"
           onClick={() => setOrdersTab("actions")}
-          className={`rounded-full px-4 py-2 text-sm font-medium transition sm:min-w-[180px] ${
+          className={`rounded-full px-5 py-2.5 text-sm font-bold transition flex-1 sm:min-w-[180px] ${
             ordersTab === "actions"
-              ? "bg-[#00B4D8] text-white"
-              : "text-slate-600 hover:text-slate-900"
+              ? "bg-[#00B4D8] text-white shadow-md relative"
+              : "text-slate-500 hover:text-slate-800 hover:bg-slate-50 relative"
           }`}
         >
-          Order actions ({actionCount})
+          Action needed {actionCount > 0 && (
+             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-fuchsia-500 text-[10px] text-white font-black shadow-sm ring-2 ring-white">
+                {actionCount}
+             </span>
+          )}
         </button>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-[24px] border border-slate-200 bg-white px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Total bookings
-          </p>
-          <p className="mt-2 text-2xl font-black text-slate-900">
-            {bookings.length}
-          </p>
-        </div>
-        <div className="rounded-[24px] border border-slate-200 bg-white px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700">
-            Active bookings
-          </p>
-          <p className="mt-2 text-2xl font-black text-slate-900">{liveCount}</p>
-        </div>
-        <div className="rounded-[24px] border border-slate-200 bg-white px-5 py-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-fuchsia-700">
-            Fully paid
-          </p>
-          <p className="mt-2 text-2xl font-black text-slate-900">{paidCount}</p>
-        </div>
-      </div>
+      <OrdersSummary bookings={bookings} />
 
-      {filteredBookings.length ? (
-        filteredBookings.map((booking) => {
-          const firstPayment = booking.payments[0];
-          const requestStatus = booking.customerRequest?.status;
-          const hasPendingRequest = requestStatus === "pending";
-          const isActionOpen = activePanel?.bookingId === booking.id;
-          const nextStepMessage = getNextStepMessage(booking);
-
-          return (
-            <article
+      <div className="space-y-5 pt-2">
+        {filteredBookings.length ? (
+          filteredBookings.map((booking) => (
+            <OrderCard
               key={booking.id}
-              className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-[0_14px_42px_rgba(15,23,42,0.06)]"
-            >
-              <div className="flex flex-col gap-4 px-4 pb-4 pt-5 sm:px-6 sm:pt-6 md:flex-row md:items-start md:justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
-                    {booking.bookingReference}
-                  </p>
-                  <h3 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">
-                    {booking.serviceTitle}
-                  </h3>
-                  <p className="mt-2 text-sm text-slate-600">
-                    {booking.schedule.date} at {booking.schedule.timeSlot}
-                  </p>
-                  <p className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                    <span className="font-semibold text-slate-900">
-                      What happens next:
-                    </span>{" "}
-                    {nextStepMessage}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  <span
-                    className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${badgeClass("cyan")}`}
-                  >
-                    {toDisplayText(booking.status)}
-                  </span>
-                  <span
-                    className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${badgeClass("fuchsia")}`}
-                  >
-                    {toDisplayText(booking.paymentStatus)}
-                  </span>
-                  {booking.customerRequest && (
-                    <span
-                      className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${badgeClass("amber")}`}
-                    >
-                      {toDisplayText(booking.customerRequest.type)} request{" "}
-                      {toDisplayText(booking.customerRequest.status)}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid gap-6 border-t border-slate-100 px-5 py-5 sm:px-6 sm:py-6 xl:grid-cols-[1.04fr_0.96fr]">
-                <div className="space-y-5">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="rounded-[24px] bg-slate-50 p-5">
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                        Booking summary
-                      </p>
-                      <div className="mt-3 space-y-2 text-sm text-slate-700">
-                        <p>Total: {booking.totalAmount.toFixed(2)} AED</p>
-                        <p>Payment method: {toDisplayText(booking.paymentMethod)}</p>
-                        <p>Address: {formatAddressLine(booking.address)}</p>
-                        <p>Contact: {booking.contactName}</p>
-                      </div>
-                    </div>
-
-                    <div className="rounded-[24px] bg-slate-50 p-5">
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                        Current progress
-                      </p>
-                      <div className="mt-3 space-y-2 text-sm text-slate-700">
-                        <p>Booking: {toDisplayText(booking.status)}</p>
-                        <p>Payment: {toDisplayText(booking.paymentStatus)}</p>
-                        <p>Date: {booking.schedule.date}</p>
-                        <p>Time: {booking.schedule.timeSlot}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {booking.customerRequest && (
-                    <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-5">
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-700">
-                        Latest request
-                      </p>
-                      <div className="mt-3 space-y-2 text-sm text-slate-700">
-                        <p>
-                          Type: {toDisplayText(booking.customerRequest.type)}
-                        </p>
-                        <p>
-                          Status:{" "}
-                          {toDisplayText(booking.customerRequest.status)}
-                        </p>
-                        {booking.customerRequest.requestedSchedule && (
-                          <p>
-                            Requested schedule:{" "}
-                            {booking.customerRequest.requestedSchedule.date} at{" "}
-                            {booking.customerRequest.requestedSchedule.timeSlot}
-                          </p>
-                        )}
-                        {booking.customerRequest.note && (
-                          <p>Note: {booking.customerRequest.note}</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                    {booking.paymentMethod === "online" &&
-                      booking.paymentStatus !== "paid" &&
-                      firstPayment && (
-                        <Link
-                          href={`/payment/checkout?paymentId=${firstPayment.id}`}
-                          className="inline-flex w-full items-center justify-center rounded-full bg-[#7B2D8B] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#632271] sm:w-auto"
-                        >
-                          Continue payment
-                        </Link>
-                      )}
-
-                    {canManageBooking(booking) && !hasPendingRequest && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => openReschedulePanel(booking)}
-                          className="inline-flex w-full items-center justify-center rounded-full border border-cyan-200 px-5 py-3 text-sm font-semibold text-cyan-700 transition hover:border-cyan-300 hover:text-cyan-800 sm:w-auto"
-                        >
-                          Request reschedule
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openCancelPanel(booking)}
-                          className="inline-flex w-full items-center justify-center rounded-full border border-red-200 px-5 py-3 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:text-red-700 sm:w-auto"
-                        >
-                          Request cancel
-                        </button>
-                      </>
-                    )}
-                  </div>
-
-                  {isActionOpen && (
-                    <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-                      <p className="text-sm font-semibold text-slate-900">
-                        {activePanel?.type === "cancel"
-                          ? "Send cancellation request"
-                          : "Send reschedule request"}
-                      </p>
-
-                      <div className="mt-4 grid gap-4">
-                        {activePanel?.type === "reschedule" && (
-                          <div className="grid gap-4 sm:grid-cols-2">
-                            <label className="grid gap-2">
-                              <span className="text-sm font-medium text-slate-700">
-                                New date
-                              </span>
-                              <input
-                                type="date"
-                                value={requestedDate}
-                                min={new Date().toISOString().slice(0, 10)}
-                                onChange={(event) =>
-                                  setRequestedDate(event.target.value)
-                                }
-                                className="rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-cyan-400 focus:ring-4 focus:ring-cyan-50"
-                              />
-                            </label>
-                            <label className="grid gap-2">
-                              <span className="text-sm font-medium text-slate-700">
-                                New time
-                              </span>
-                              <select
-                                value={requestedTimeSlot}
-                                onChange={(event) =>
-                                  setRequestedTimeSlot(event.target.value)
-                                }
-                                className="rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-cyan-400 focus:ring-4 focus:ring-cyan-50"
-                              >
-                                {CUSTOMER_TIME_SLOTS.map((timeSlot) => (
-                                  <option key={timeSlot} value={timeSlot}>
-                                    {timeSlot}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                          </div>
-                        )}
-
-                        <label className="grid gap-2">
-                          <span className="text-sm font-medium text-slate-700">
-                            Note to admin
-                          </span>
-                          <textarea
-                            value={requestNote}
-                            onChange={(event) =>
-                              setRequestNote(event.target.value)
-                            }
-                            className="min-h-[100px] rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-cyan-400 focus:ring-4 focus:ring-cyan-50"
-                            placeholder={
-                              activePanel?.type === "cancel"
-                                ? "Tell us why you want to cancel..."
-                                : "Tell us which time works better..."
-                            }
-                          />
-                        </label>
-                      </div>
-
-                      {inlineMessage && (
-                        <p className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                          {inlineMessage}
-                        </p>
-                      )}
-
-                      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            activePanel?.type === "cancel"
-                              ? void submitCancelRequest(booking.id)
-                              : void submitRescheduleRequest(booking.id)
-                          }
-                          disabled={Boolean(activeMutation)}
-                          className="inline-flex w-full items-center justify-center rounded-full bg-[#00B4D8] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0097b7] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
-                        >
-                          {activeMutation ? "Sending request..." : "Send request"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActivePanel(null);
-                            setInlineMessage("");
-                          }}
-                          className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900 sm:w-auto"
-                        >
-                          Close
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
-                  <p className="text-sm font-semibold text-slate-900">
-                    Recent updates
-                  </p>
-
-                  <div className="mt-4 space-y-3">
-                    {booking.statusHistory.length ? (
-                      booking.statusHistory.map((entry) => (
-                        <div
-                          key={entry.id}
-                          className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-700"
-                        >
-                          <p className="font-medium">
-                            {entry.fromStatus
-                              ? `${toDisplayText(entry.fromStatus)} -> `
-                              : ""}
-                            {toDisplayText(entry.toStatus)}
-                          </p>
-                          <p className="mt-1 text-xs text-slate-500">
-                            {new Date(entry.createdAt).toLocaleString()}
-                          </p>
-                          {entry.note && (
-                            <p className="mt-2 text-xs text-slate-600">
-                              {entry.note}
-                            </p>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-slate-500">
-                        No updates available yet.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </article>
-          );
-        })
-      ) : (
-        <div className="rounded-[28px] border border-slate-200 bg-white p-10 text-center shadow-sm">
-          {ordersTab === "history" ? (
-            <>
-              <p className="text-lg font-semibold text-slate-900">
-                No orders linked to this account yet.
-              </p>
-              <p className="mt-3 text-sm text-slate-600">
-                Sign in before placing an order, then come back here to track
-                status, payments, and service history.
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="text-lg font-semibold text-slate-900">
-                No customer action is needed right now.
-              </p>
-              <p className="mt-3 text-sm text-slate-600">
-                When a booking needs payment, reschedule, or cancel action, it
-                will appear in this tab.
-              </p>
-            </>
-          )}
-        </div>
-      )}
+              booking={booking}
+              isActionOpen={activePanel?.bookingId === booking.id}
+              activePanelType={activePanel?.bookingId === booking.id ? activePanel.type : null}
+              activeMutation={activeMutation}
+              inlineMessage={inlineMessage}
+              onOpenCancel={openCancelPanel}
+              onOpenReschedule={openReschedulePanel}
+              onCloseAction={closeActionPanel}
+              onSubmitAction={submitActionRequest}
+              requestNote={requestNote}
+              setRequestNote={setRequestNote}
+              requestedDate={requestedDate}
+              setRequestedDate={setRequestedDate}
+              requestedTimeSlot={requestedTimeSlot}
+              setRequestedTimeSlot={setRequestedTimeSlot}
+            />
+          ))
+        ) : (
+          <div className="rounded-[30px] border border-slate-200 bg-white p-12 text-center shadow-sm">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-slate-50 mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-300"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            {ordersTab === "history" ? (
+              <>
+                <p className="text-xl font-bold text-slate-900">
+                  No orders found.
+                </p>
+                <p className="mt-3 text-sm text-slate-500 max-w-sm mx-auto">
+                  When you book a service, it will appear here for you to track status, payments, and history.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-xl font-bold text-slate-900">
+                  All caught up!
+                </p>
+                <p className="mt-3 text-sm text-slate-500 max-w-sm mx-auto">
+                  No customer action is needed right now. If a booking requires your attention, it will appear here.
+                </p>
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

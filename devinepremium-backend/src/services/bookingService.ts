@@ -20,6 +20,7 @@ import {
   PaymentMethod,
   SavedAddressInput,
 } from "../types/domain";
+import { HttpError } from "../utils/http";
 
 interface CreateBookingInput {
   serviceId: string;
@@ -43,9 +44,41 @@ const statusHistoryRepository = () =>
   AppDataSource.getRepository(BookingStatusHistory);
 const userRepository = () => AppDataSource.getRepository(User);
 const staffRepository = () => AppDataSource.getRepository(StaffMember);
+const SLOT_BLOCKING_STATUSES: BookingStatus[] = [
+  "pending",
+  "accepted",
+  "scheduled",
+  "in_progress",
+];
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function normalizeText(value?: string | null) {
+  return value?.trim().toLowerCase() || "";
+}
+
+function normalizeAddressKey(address: BookingAddress) {
+  return [
+    normalizeText(address.city),
+    normalizeText(address.location),
+    normalizeText(address.building),
+    normalizeText(address.apartment),
+  ]
+    .filter(Boolean)
+    .join("|");
+}
+
+function isSameSchedule(left: BookingSchedule, right: BookingSchedule) {
+  return (
+    normalizeText(left.date) === normalizeText(right.date) &&
+    normalizeText(left.timeSlot) === normalizeText(right.timeSlot)
+  );
+}
+
+function doesBookingBlockSlot(booking: Pick<Booking, "status">) {
+  return SLOT_BLOCKING_STATUSES.includes(booking.status);
 }
 
 function createReference(prefix: string) {
@@ -113,9 +146,142 @@ async function getOwnedBooking(bookingId: string, userId: string) {
   return booking;
 }
 
+async function listActiveBookingsForSchedule(
+  schedule: BookingSchedule,
+  excludeBookingId?: string,
+) {
+  const bookings = await bookingRepository().find({
+    relations: {
+      assignedStaff: true,
+    },
+  });
+
+  return bookings.filter(
+    (booking) =>
+      booking.id !== excludeBookingId &&
+      doesBookingBlockSlot(booking) &&
+      isSameSchedule(booking.schedule, schedule),
+  );
+}
+
+async function assertSlotCapacityAvailable(
+  schedule: BookingSchedule,
+  excludeBookingId?: string,
+) {
+  const [slotBookings, staffMembers] = await Promise.all([
+    listActiveBookingsForSchedule(schedule, excludeBookingId),
+    staffService.listStaffMembers(),
+  ]);
+
+  const activeStaffMembers = staffMembers.filter((staffMember) => staffMember.isActive);
+
+  if (!activeStaffMembers.length) {
+    return slotBookings;
+  }
+
+  const availableStaffMembers = activeStaffMembers.filter((staffMember) =>
+    isStaffAvailableForDate(staffMember, schedule.date),
+  );
+
+  if (!availableStaffMembers.length) {
+    throw new HttpError(
+      409,
+      "No staff are available on the selected date. Please choose another day.",
+    );
+  }
+
+  if (slotBookings.length >= availableStaffMembers.length) {
+    throw new HttpError(
+      409,
+      "The selected time slot is already full for the available team. Please choose another time.",
+    );
+  }
+
+  return slotBookings;
+}
+
+async function assertUserSlotRules(input: {
+  address: BookingAddress;
+  excludeBookingId?: string;
+  schedule: BookingSchedule;
+  serviceId: string;
+  userId: string;
+}) {
+  const slotBookings = await assertSlotCapacityAvailable(
+    input.schedule,
+    input.excludeBookingId,
+  );
+  const userSlotBookings = slotBookings.filter(
+    (booking) => booking.userId === input.userId,
+  );
+
+  const sameAddressBooking = userSlotBookings.find(
+    (booking) => normalizeAddressKey(booking.address) === normalizeAddressKey(input.address),
+  );
+
+  if (sameAddressBooking?.serviceId === input.serviceId) {
+    throw new HttpError(
+      409,
+      "You already booked this service for the same address, date, and time.",
+    );
+  }
+
+  if (sameAddressBooking) {
+    throw new HttpError(
+      409,
+      "You already have another service booked for the same address, date, and time. Please choose another slot or combine it into the same visit.",
+    );
+  }
+
+  if (userSlotBookings.length) {
+    throw new HttpError(
+      409,
+      "You already have another booking at the same date and time. Please choose a different slot.",
+    );
+  }
+}
+
+async function findStaffSlotConflict(input: {
+  schedule: BookingSchedule;
+  staffId: string;
+  excludeBookingId?: string;
+}) {
+  const slotBookings = await listActiveBookingsForSchedule(
+    input.schedule,
+    input.excludeBookingId,
+  );
+
+  return (
+    slotBookings.find((booking) => booking.assignedStaffId === input.staffId) ?? null
+  );
+}
+
+async function assertStaffHasNoSlotConflict(input: {
+  schedule: BookingSchedule;
+  staffId: string;
+  excludeBookingId?: string;
+}) {
+  const staffConflict = await findStaffSlotConflict(input);
+
+  if (staffConflict) {
+    throw new HttpError(
+      409,
+      "Selected staff member already has another booking at the same date and time.",
+    );
+  }
+}
+
 export const bookingService = {
   async createBookingForUser(input: CreateBookingInput, user: User) {
     const email = normalizeEmail(user.email);
+
+    await assertUserSlotRules({
+      userId: user.id,
+      serviceId: input.serviceId,
+      address: input.address,
+      schedule: input.schedule,
+    });
+
     const booking = bookingRepository().create({
       bookingReference: createReference("DP"),
       serviceId: input.serviceId,
@@ -314,10 +480,17 @@ export const bookingService = {
       }
 
       if (!isStaffAvailableForDate(nextAssignee, booking.schedule.date)) {
-        throw new Error(
+        throw new HttpError(
+          409,
           "Selected staff member is not available on the booking day.",
         );
       }
+
+      await assertStaffHasNoSlotConflict({
+        staffId: nextAssignee.id,
+        schedule: booking.schedule,
+        excludeBookingId: booking.id,
+      });
     }
 
     booking.assignedStaffId = nextAssignee?.id ?? null;
@@ -429,6 +602,14 @@ export const bookingService = {
       throw new Error("This order already has a pending request.");
     }
 
+    await assertUserSlotRules({
+      userId,
+      serviceId: booking.serviceId,
+      address: booking.address,
+      schedule: input.schedule,
+      excludeBookingId: booking.id,
+    });
+
     booking.customerRequest = {
       type: "reschedule",
       status: "pending",
@@ -462,6 +643,9 @@ export const bookingService = {
   ) {
     const booking = await bookingRepository().findOne({
       where: { id: bookingId },
+      relations: {
+        assignedStaff: true,
+      },
     });
 
     if (!booking) {
@@ -475,6 +659,7 @@ export const bookingService = {
     const request = booking.customerRequest;
     const previousStatus = booking.status;
     let historyNote = "";
+    let assignmentNote = "";
 
     if (input.decision === "approved") {
       if (request.type === "cancel") {
@@ -484,11 +669,49 @@ export const bookingService = {
           "Admin approved the customer's cancellation request.";
       } else {
         if (request.requestedSchedule) {
+          await assertUserSlotRules({
+            userId: booking.userId || changedByUserId,
+            serviceId: booking.serviceId,
+            address: booking.address,
+            schedule: request.requestedSchedule,
+            excludeBookingId: booking.id,
+          });
+
+          if (booking.assignedStaffId && booking.assignedStaff) {
+            const assignedStaffStillAvailable = isStaffAvailableForDate(
+              booking.assignedStaff,
+              request.requestedSchedule.date,
+            );
+
+            if (assignedStaffStillAvailable) {
+              const conflictingBooking = await findStaffSlotConflict({
+                staffId: booking.assignedStaff.id,
+                schedule: request.requestedSchedule,
+                excludeBookingId: booking.id,
+              });
+
+              if (conflictingBooking) {
+                booking.assignedStaffId = null;
+                booking.assignedStaff = null;
+                booking.assignedAt = null;
+                assignmentNote =
+                  " Staff assignment was cleared because the assigned team member already has another booking in the requested time slot.";
+              }
+            } else {
+              booking.assignedStaffId = null;
+              booking.assignedStaff = null;
+              booking.assignedAt = null;
+              assignmentNote =
+                " Staff assignment was cleared because the assigned team member is not available on the requested date.";
+            }
+          }
+
           booking.schedule = request.requestedSchedule;
         }
         historyNote =
-          input.note?.trim() ||
-          "Admin approved the customer's reschedule request.";
+          input.note?.trim()
+            ? `${input.note.trim()}${assignmentNote}`
+            : `Admin approved the customer's reschedule request.${assignmentNote}`;
       }
     } else {
       historyNote =

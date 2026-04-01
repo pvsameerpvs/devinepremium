@@ -1,13 +1,12 @@
-import { Footer } from "@/components/Footer";
-import { SiteHeader } from "@/components/SiteHeader";
-import { CustomerAccountPage } from "@/components/account/CustomerAccountPage";
+"use client";
 
-export default function AccountPage() {
-  return (
-    <div className="min-h-screen overflow-x-hidden bg-background text-foreground selection:bg-primary/20">
-      <SiteHeader />
-      <CustomerAccountPage />
-      <Footer />
-    </div>
-  );
+import { redirect } from "next/navigation";
+import { useEffect } from "react";
+
+export default function AccountIndexPage() {
+  useEffect(() => {
+    redirect("/account/profile");
+  }, []);
+
+  return null;
 }
