@@ -52,6 +52,7 @@ export interface AdminBooking {
   paymentStatus: string;
   totalAmount: number;
   currency: string;
+  createdAt: string;
   contactName: string;
   contactEmail: string;
   address: {

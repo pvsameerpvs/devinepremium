@@ -33,17 +33,14 @@ export function BookingOperationsPanel({
 
   const displayBookings = activeTab === "today"
     ? bookings.filter((b) => {
-        const createdDateStr = (b as AdminBooking & { createdAt?: string }).createdAt ?? (b.statusHistory?.length ? b.statusHistory[b.statusHistory.length - 1].createdAt : null);
-        if (createdDateStr) {
-          try {
-            const d = new Date(createdDateStr);
-            const bookingDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-            return bookingDateStr === todayString;
-          } catch {
-            return false;
-          }
+        if (!b.createdAt) return false;
+        try {
+          const d = new Date(b.createdAt);
+          const bookingDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          return bookingDateStr === todayString;
+        } catch {
+          return false;
         }
-        return false;
       })
     : bookings;
 

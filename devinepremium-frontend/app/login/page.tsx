@@ -183,10 +183,10 @@ export default function LoginPage() {
 
           <div className="relative flex h-full flex-col justify-between px-6 py-6 text-white sm:px-8 sm:py-8 lg:px-10 lg:py-10">
             <div className="flex items-center justify-between gap-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/[0.08] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.34em] text-cyan-200">
+              {/* <div className="inline-flex items-center gap-2 rounded-full border border-white/14 bg-white/[0.08] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.34em] text-cyan-200">
                 <Sparkles className="h-3.5 w-3.5" />
                 Customer login
-              </div>
+              </div> */}
               <Link
                 href="/"
                 className="inline-flex items-center gap-2 rounded-full border border-white/16 bg-white/[0.06] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.12]"

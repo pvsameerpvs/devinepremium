@@ -1,12 +1,14 @@
 "use client";
 
-import { redirect } from "next/navigation";
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function AccountIndexPage() {
+  const router = useRouter();
+
   useEffect(() => {
-    redirect("/account/profile");
-  }, []);
+    router.replace("/account/profile");
+  }, [router]);
 
   return null;
 }
