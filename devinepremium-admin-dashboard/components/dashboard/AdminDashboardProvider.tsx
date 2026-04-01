@@ -83,6 +83,7 @@ export function AdminDashboardProvider({
         method: "GET",
         token,
       }),
+    { refreshInterval: 15000 } // Auto-refresh every 15 seconds to catch new bookings
   );
 
   const clearPageMessage = useCallback(() => {
