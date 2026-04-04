@@ -1,12 +1,27 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { BOOKING_STATUSES, PAYMENT_STATUSES } from "@devinepremium/shared";
 import { formatAddressLine, formatStatusLabel, type AdminBooking, type StaffMember } from "@/lib/dashboard";
 import { getBookingStatusColor, getPaymentStatusColor } from "./dashboard-shared";
 
 function toDisplayText(value: string) {
   return formatStatusLabel(value).replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function getInitials(fullName?: string | null) {
+  if (!fullName) {
+    return "NA";
+  }
+
+  return fullName
+    .split(" ")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("");
 }
 
 export function AdminBookingCard({
@@ -64,7 +79,21 @@ export function AdminBookingCard({
             {toDisplayText(booking.paymentStatus)}
           </span>
           {booking.assignedStaff ? (
-            <span className="rounded-full bg-emerald-100 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+              {booking.assignedStaff.profilePhotoUrl ? (
+                <Image
+                  src={booking.assignedStaff.profilePhotoUrl}
+                  alt={`${booking.assignedStaff.fullName} profile`}
+                  width={20}
+                  height={20}
+                  unoptimized
+                  className="h-5 w-5 rounded-full border border-emerald-200 object-cover"
+                />
+              ) : (
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-[9px] font-bold text-emerald-700">
+                  {getInitials(booking.assignedStaff.fullName)}
+                </span>
+              )}
               {booking.assignedStaff.fullName}
             </span>
           ) : (
@@ -149,7 +178,62 @@ export function AdminBookingCard({
                 </p>
                 <p>{formatAddressLine(booking)}</p>
                 <p>Total: {booking.totalAmount.toFixed(2)} AED</p>
-                <p>Customer account: {booking.user?.email || "User not linked"}</p>
+                <p>Booked by: {booking.contactName}</p>
+              </div>
+            </div>
+
+            <div className="rounded-[24px] border border-slate-200 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                Customer user
+              </p>
+              <div className="mt-3 space-y-2 text-sm text-slate-700">
+                {booking.user ? (
+                  <>
+                    <p>Name: {booking.user.fullName}</p>
+                    <p>Email: {booking.user.email}</p>
+                    <p>User ID: {booking.user.id}</p>
+                  </>
+                ) : (
+                  <>
+                    <p>User not linked to this booking.</p>
+                    <p>Contact email: {booking.contactEmail}</p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-[24px] border border-slate-200 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                Cleaning staff
+              </p>
+              <div className="mt-3">
+                {booking.assignedStaff ? (
+                  <div className="flex items-center gap-3">
+                    {booking.assignedStaff.profilePhotoUrl ? (
+                      <Image
+                        src={booking.assignedStaff.profilePhotoUrl}
+                        alt={`${booking.assignedStaff.fullName} profile`}
+                        width={44}
+                        height={44}
+                        unoptimized
+                        className="h-11 w-11 rounded-full border border-slate-200 object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-xs font-bold text-slate-700">
+                        {getInitials(booking.assignedStaff.fullName)}
+                      </div>
+                    )}
+                    <div className="text-sm text-slate-700">
+                      <p className="font-semibold text-slate-900">
+                        {booking.assignedStaff.fullName}
+                      </p>
+                      <p>{booking.assignedStaff.email || "No email"}</p>
+                      <p>{booking.assignedStaff.phone || "No phone"}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-600">No cleaning staff assigned yet.</p>
+                )}
               </div>
             </div>
 
@@ -242,7 +326,7 @@ export function AdminBookingCard({
         </div>
 
         <div className="rounded-[26px] border border-slate-200 p-5">
-          <p className="text-sm font-semibold text-slate-900">Status history</p>
+          <p className="text-sm font-semibold text-slate-900">Booking history & actions</p>
           <div className="mt-4 space-y-3">
             {booking.statusHistory.length ? (
               booking.statusHistory.map((entry) => (

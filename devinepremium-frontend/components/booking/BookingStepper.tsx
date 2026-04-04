@@ -181,13 +181,37 @@ export function BookingStepper({ service }: BookingStepperProps) {
              "every-5-weeks": 0.05,
              "every-6-weeks": 0.05,
            };
+           const maidVisitsPerMonthByFrequency: Record<string, number> = {
+             "one-time": 1,
+             weekly: 4,
+             "2-times-weekly": 8,
+             "3-times-weekly": 12,
+             "4-times-weekly": 16,
+             "5-times-weekly": 20,
+             "6-times-weekly": 24,
+             "bi-weekly": 2,
+             "every-3-weeks": 4 / 3,
+             "every-4-weeks": 1,
+             "every-5-weeks": 0.8,
+             "every-6-weeks": 2 / 3,
+           };
+
            const maidDiscountRate = maidDiscountRateByFrequency[frequency] || 0;
+           const visitsPerMonth = maidVisitsPerMonthByFrequency[frequency] || 1;
+           const visitsPerMonthLabel = Number.isInteger(visitsPerMonth)
+             ? String(visitsPerMonth)
+             : visitsPerMonth.toFixed(1);
+           const recurringSuffix =
+             frequency === "one-time"
+               ? ""
+               : ` x ${visitsPerMonthLabel} visit(s)/month`;
             
            if (hours > 0 && crew > 0) {
-               const laborTotal = hours * crew * service.basePrice;
+               const laborPerVisit = hours * crew * service.basePrice;
+               const laborTotal = laborPerVisit * visitsPerMonth;
                subtotal += laborTotal;
                items.push({ 
-                   label: `${crew} Cleaner(s) x ${hours} Hour(s) @ ${service.basePrice} AED/hr`, 
+                   label: `${crew} Cleaner(s) x ${hours} Hour(s) @ ${service.basePrice} AED/hr${recurringSuffix}`,
                    amount: laborTotal 
                });
 
@@ -206,8 +230,9 @@ export function BookingStepper({ service }: BookingStepperProps) {
                     const item = extraOpt.options?.find(o => o.value === val);
                     const price = item?.price || (val === 'supplies' ? 10 : 0); // Fallback for hardcoded
                       if (price > 0) {
-                          subtotal += price;
-                          items.push({ label: item?.label || val, amount: price });
+                          const extraTotal = price * visitsPerMonth;
+                          subtotal += extraTotal;
+                          items.push({ label: `${item?.label || val}${recurringSuffix}`, amount: extraTotal });
                       }
                  });
              }
@@ -270,9 +295,18 @@ export function BookingStepper({ service }: BookingStepperProps) {
        finalItems.push({ label: `VAT (${Math.round(VAT_RATE * 100)}%)`, amount: vat });
 
        return { subtotal: round2(subtotal), discount: discountRounded, vat, total, items: finalItems };
-   };
+  };
 
   const { total, items: lineItems, subtotal, discount, vat } = calculateBreakdown();
+  const maidFrequency = String(formData.serviceOptions["frequency"] || "one-time");
+  const isMaidRecurring =
+    service.id === "maid-cleaning" && maidFrequency !== "one-time";
+  const estimateLabel = isMaidRecurring
+    ? "Estimated Monthly Total"
+    : "Estimated Total";
+  const estimateNote = isMaidRecurring
+    ? "Includes recurring frequency pricing for approx. 4 weeks + 5% VAT"
+    : "Includes selected options + 5% VAT";
   const addressSummary = [
     formData.address.building,
     formData.address.apartment,
@@ -839,7 +873,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
                 {/* Discount Helper Text for Maid Cleaning Frequency */}
                  {service.id === 'maid-cleaning' && opt.id === 'frequency' && (
                      <p className="text-sm text-[#00B4D8] font-medium mt-1 ml-1 flex items-center gap-1">
-                         Offers: weekly 5%, 2x/week 10%, 3+/week 15%, every 3-6 weeks 5%
+                         Offers: weekly 5%, 2x/week 10%, 3+/week 15%, every 3-6 weeks 5% (totals are monthly estimates)
                      </p>
                  )}
               </>
@@ -928,12 +962,12 @@ export function BookingStepper({ service }: BookingStepperProps) {
         {/* Total Display Inside Step 1 - Per User Request */}
          <div className="mt-8 p-6 bg-slate-900 rounded-xl text-white flex flex-col sm:flex-row justify-between items-center shadow-lg border border-slate-700">
               <div className="mb-4 sm:mb-0">
-                  <p className="text-sm text-slate-400 uppercase tracking-widest font-semibold">Estimated Total</p>
+                  <p className="text-sm text-slate-400 uppercase tracking-widest font-semibold">{estimateLabel}</p>
                   <div className="flex items-baseline gap-2">
                      <p className="text-4xl font-bold text-[#00B4D8]">{formatAED(total)}</p>
                      <span className="text-lg font-medium text-slate-300">AED</span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">Includes selected options + 5% VAT</p>
+                  <p className="text-xs text-slate-500 mt-1">{estimateNote}</p>
               </div>
              
              {/* Mini Breakdown for clarity */}
@@ -1509,7 +1543,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
 
                 {/* Total */}
                  <div className="bg-gray-50 rounded-xl p-4 flex justify-between items-center border border-gray-100">
-                      <span className="text-gray-600 font-medium">Total Estimate</span>
+                      <span className="text-gray-600 font-medium">{estimateLabel}</span>
                       <span className="text-2xl font-bold text-[#00B4D8]">{formatAED(total)} <span className="text-xs text-gray-400 font-normal">AED</span></span>
                  </div>
 
@@ -1607,7 +1641,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
                </div>
 
                <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
-                    <span className="font-semibold text-gray-700">Total Estimate</span>
+                    <span className="font-semibold text-gray-700">{estimateLabel}</span>
                      <span className="text-xl font-bold text-[#00B4D8]">{formatAED(total)} AED</span>
                 </div>
             </div>
