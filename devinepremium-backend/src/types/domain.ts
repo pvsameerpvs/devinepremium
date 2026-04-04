@@ -99,9 +99,12 @@ export type StaffAvailabilityDay =
 
 export interface StaffMemberInput {
   fullName: string;
+  slug?: string | null;
   email?: string | null;
   phone?: string | null;
   availabilityDays: StaffAvailabilityDay[];
   notes?: string | null;
+  profilePhotoUrl?: string | null;
+  documentImageUrls?: string[] | null;
   isActive?: boolean;
 }

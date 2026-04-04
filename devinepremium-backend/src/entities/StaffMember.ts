@@ -17,6 +17,9 @@ export class StaffMember {
   @Column({ type: "varchar", length: 255 })
   fullName!: string;
 
+  @Column({ type: "varchar", length: 255, unique: true, nullable: true })
+  slug!: string | null;
+
   @Column({ type: "varchar", length: 255, nullable: true })
   email!: string | null;
 
@@ -28,6 +31,12 @@ export class StaffMember {
 
   @Column({ type: "text", nullable: true })
   notes!: string | null;
+
+  @Column({ type: "text", nullable: true })
+  profilePhotoUrl!: string | null;
+
+  @Column({ type: "simple-json", nullable: true })
+  documentImageUrls!: string[] | null;
 
   @Column({ type: "boolean", default: true })
   isActive!: boolean;

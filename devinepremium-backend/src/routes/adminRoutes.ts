@@ -31,19 +31,25 @@ const staffDaySchema = z.enum(STAFF_AVAILABILITY_DAYS);
 
 const createStaffSchema = z.object({
   fullName: z.string().min(2),
+  slug: z.string().optional(),
   email: z.string().optional(),
   phone: z.string().optional(),
   availabilityDays: z.array(staffDaySchema).min(1),
   notes: z.string().optional(),
+  profilePhotoUrl: z.string().optional(),
+  documentImageUrls: z.array(z.string()).max(8).optional(),
   isActive: z.boolean().optional(),
 });
 
 const updateStaffSchema = z.object({
   fullName: z.string().min(2).optional(),
+  slug: z.string().optional(),
   email: z.string().optional(),
   phone: z.string().optional(),
   availabilityDays: z.array(staffDaySchema).min(1).optional(),
   notes: z.string().optional(),
+  profilePhotoUrl: z.string().optional(),
+  documentImageUrls: z.array(z.string()).max(8).optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -181,6 +187,34 @@ router.patch(
 
     res.json({
       message: "Staff member updated successfully.",
+      staffMember,
+    });
+  }),
+);
+
+router.post(
+  "/staff/:staffId/delete",
+  asyncHandler(async (req, res) => {
+    const staffMember = await staffService.deleteStaffMember(
+      String(req.params.staffId),
+    );
+
+    res.json({
+      message: "Staff member deleted successfully.",
+      staffMember,
+    });
+  }),
+);
+
+router.delete(
+  "/staff/:staffId",
+  asyncHandler(async (req, res) => {
+    const staffMember = await staffService.deleteStaffMember(
+      String(req.params.staffId),
+    );
+
+    res.json({
+      message: "Staff member deleted successfully.",
       staffMember,
     });
   }),

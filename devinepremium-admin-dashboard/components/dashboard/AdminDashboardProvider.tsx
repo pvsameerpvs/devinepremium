@@ -26,6 +26,7 @@ import type { StaffFormState } from "./StaffManagementPanel";
 
 const EMPTY_BOOKINGS: AdminBooking[] = [];
 const EMPTY_STAFF: StaffMember[] = [];
+const SOFT_DELETED_STAFF_NOTE = "__staff_deleted__";
 const EMPTY_SUMMARY: DashboardSummary = {
   totalBookings: 0,
   pendingBookings: 0,
@@ -60,6 +61,7 @@ interface AdminDashboardContextValue {
   assignStaff: (bookingId: string, staffId: string | null) => Promise<void>;
   createStaff: (input: StaffFormState) => Promise<boolean>;
   updateStaff: (staffId: string, input: StaffFormState) => Promise<boolean>;
+  deleteStaff: (staffId: string) => Promise<boolean>;
 }
 
 const AdminDashboardContext = createContext<AdminDashboardContextValue | null>(
@@ -218,9 +220,64 @@ export function AdminDashboardProvider({
     );
   }
 
+  async function deleteStaff(staffId: string) {
+    return runDashboardAction(
+      `delete-staff:${staffId}`,
+      "Staff member deleted successfully.",
+      async () => {
+        const isNotFoundError = (error: unknown) =>
+          error instanceof Error &&
+          error.message.toLowerCase().includes("404");
+
+        try {
+          await apiRequest(`/api/v1/admin/staff/${staffId}`, {
+            method: "DELETE",
+            token: session.token,
+          });
+          return;
+        } catch (deleteError) {
+          if (isNotFoundError(deleteError)) {
+            try {
+              await apiRequest(`/api/v1/admin/staff/${staffId}/delete`, {
+                method: "POST",
+                token: session.token,
+              });
+              return;
+            } catch (postDeleteError) {
+              if (!isNotFoundError(postDeleteError)) {
+                throw postDeleteError;
+              }
+            }
+
+            const softDeleteSlug = `deleted-${Date.now()}-${staffId.slice(0, 8)}`;
+            await apiRequest(`/api/v1/admin/staff/${staffId}`, {
+              method: "PATCH",
+              token: session.token,
+              body: JSON.stringify({
+                isActive: false,
+                notes: SOFT_DELETED_STAFF_NOTE,
+                slug: softDeleteSlug,
+              }),
+            });
+            return;
+          }
+
+          throw deleteError;
+        }
+      },
+    );
+  }
+
   const summary = data?.summary ?? EMPTY_SUMMARY;
   const bookings = data?.bookings ?? EMPTY_BOOKINGS;
-  const staffMembers = data?.staffMembers ?? EMPTY_STAFF;
+  const staffMembers = useMemo(
+    () =>
+      (data?.staffMembers ?? EMPTY_STAFF).filter(
+        (staffMember) =>
+          (staffMember.notes || "").trim() !== SOFT_DELETED_STAFF_NOTE,
+      ),
+    [data?.staffMembers],
+  );
 
   const activeStaffCount = useMemo(
     () => staffMembers.filter((staffMember) => staffMember.isActive).length,
@@ -275,6 +332,7 @@ export function AdminDashboardProvider({
     assignStaff,
     createStaff,
     updateStaff,
+    deleteStaff,
   };
 
   return (

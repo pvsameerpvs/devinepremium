@@ -21,10 +21,13 @@ export type StaffAvailabilityDay =
 export interface StaffMember {
   id: string;
   fullName: string;
+  slug: string;
   email?: string | null;
   phone?: string | null;
   availabilityDays: StaffAvailabilityDay[];
   notes?: string | null;
+  profilePhotoUrl?: string | null;
+  documentImageUrls?: string[] | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
