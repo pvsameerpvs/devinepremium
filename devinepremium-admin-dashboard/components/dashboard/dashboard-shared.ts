@@ -97,3 +97,41 @@ export function getAssignableStaff(
 
   return availableStaff;
 }
+
+export function getBookingStatusColor(status: string) {
+  switch (status) {
+    case "pending":
+      return "bg-amber-100 text-amber-700 border-amber-200";
+    case "accepted":
+      return "bg-sky-100 text-sky-700 border-sky-200";
+    case "scheduled":
+      return "bg-indigo-100 text-indigo-700 border-indigo-200";
+    case "in_progress":
+      return "bg-emerald-100 text-emerald-700 border-emerald-200";
+    case "completed":
+      return "bg-teal-100 text-teal-700 border-teal-200";
+    case "cancelled":
+      return "bg-rose-100 text-rose-700 border-rose-200";
+    case "rejected":
+      return "bg-red-100 text-red-700 border-red-200";
+    default:
+      return "bg-slate-100 text-slate-700 border-slate-200";
+  }
+}
+
+export function getPaymentStatusColor(status: string) {
+  switch (status) {
+    case "paid":
+      return "bg-emerald-100 text-emerald-700 border-emerald-200";
+    case "pending":
+      return "bg-amber-100 text-amber-700 border-amber-200";
+    case "cash_due":
+      return "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200";
+    case "failed":
+      return "bg-red-100 text-red-700 border-red-200";
+    case "refunded":
+      return "bg-slate-100 text-slate-700 border-slate-200";
+    default:
+      return "bg-slate-50 text-slate-500 border-slate-100";
+  }
+}

@@ -212,6 +212,7 @@ export function OrderCard({
           {isActionOpen && (
             <OrderActionPanel
               activePanelType={activePanelType!}
+              bookingId={booking.id}
               activeMutation={activeMutation}
               inlineMessage={inlineMessage}
               requestNote={requestNote}

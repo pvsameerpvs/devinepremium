@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { BOOKING_STATUSES, PAYMENT_STATUSES } from "@devinepremium/shared";
 import { formatAddressLine, formatStatusLabel, type AdminBooking, type StaffMember } from "@/lib/dashboard";
+import { getBookingStatusColor, getPaymentStatusColor } from "./dashboard-shared";
 
 function toDisplayText(value: string) {
   return formatStatusLabel(value).replace(/\b\w/g, (char) => char.toUpperCase());
@@ -56,10 +57,10 @@ export function AdminBookingCard({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <span className="rounded-full bg-cyan-100 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-700">
+          <span className={`rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] shadow-sm ${getBookingStatusColor(booking.status)}`}>
             {toDisplayText(booking.status)}
           </span>
-          <span className="rounded-full bg-fuchsia-100 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-fuchsia-700">
+          <span className={`rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] shadow-sm ${getPaymentStatusColor(booking.paymentStatus)}`}>
             {toDisplayText(booking.paymentStatus)}
           </span>
           {booking.assignedStaff ? (
@@ -152,11 +153,11 @@ export function AdminBookingCard({
               </div>
             </div>
 
-            <div className="rounded-[24px] bg-amber-50 p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-700">
+            <div className={`rounded-[24px] border p-5 ${getPaymentStatusColor(booking.paymentStatus)}`}>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] opacity-70">
                 Payment
               </p>
-              <div className="mt-3 space-y-2 text-sm text-slate-700">
+              <div className="mt-3 space-y-2 text-sm font-medium">
                 <p>Method: {toDisplayText(booking.paymentMethod)}</p>
                 <p>Status: {toDisplayText(booking.paymentStatus)}</p>
                 <p>Currency: {booking.currency}</p>

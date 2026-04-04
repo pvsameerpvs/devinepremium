@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { BOOKING_STATUSES } from "@devinepremium/shared";
 import type { AdminBooking, StaffMember } from "@/lib/dashboard";
 import { getAvailableStaffForDate } from "@/lib/dashboard";
 import { AdminBookingCard } from "./AdminBookingCard";
-import { getAssignableStaff } from "./dashboard-shared";
+import { getAssignableStaff, getBookingStatusColor } from "./dashboard-shared";
 
 export function BookingOperationsPanel({
   bookings,
@@ -26,23 +27,32 @@ export function BookingOperationsPanel({
   onUpdateBookingStatus: (bookingId: string, status: string) => Promise<void>;
   onUpdatePaymentStatus: (paymentId: string, status: string) => Promise<void>;
 }) {
-  const [activeTab, setActiveTab] = useState<"today" | "all">("today");
+  const [activeTab, setActiveTab] = useState<"today" | "all" | string>("today");
 
   const today = new Date();
   const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-  const displayBookings = activeTab === "today"
-    ? bookings.filter((b) => {
-        if (!b.createdAt) return false;
-        try {
-          const d = new Date(b.createdAt);
-          const bookingDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-          return bookingDateStr === todayString;
-        } catch {
-          return false;
-        }
-      })
-    : bookings;
+  const displayBookings = activeTab === "all" 
+    ? bookings 
+    : activeTab === "today"
+      ? bookings.filter((b) => {
+          if (!b.createdAt) return false;
+          try {
+            const d = new Date(b.createdAt);
+            const bookingDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+            return bookingDateStr === todayString;
+          } catch {
+            return false;
+          }
+        })
+      : bookings.filter((b) => b.status === activeTab);
+
+  const getCount = (status: string) => bookings.filter(b => b.status === status).length;
+  const todayCount = bookings.filter(b => {
+    if (!b.createdAt) return false;
+    const d = new Date(b.createdAt);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` === todayString;
+  }).length;
 
   return (
     <section className="space-y-4">
@@ -57,29 +67,55 @@ export function BookingOperationsPanel({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 pt-2 pb-2">
+      <div className="flex flex-wrap gap-2 pt-2 border-b border-slate-100 pb-4">
         <button
           type="button"
           onClick={() => setActiveTab("today")}
-          className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+          className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold transition shadow-sm ${
             activeTab === "today"
-              ? "bg-slate-800 text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+              ? "bg-slate-800 text-white"
+              : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
           }`}
         >
-          Today
+          Today <span className={`flex h-5 items-center justify-center rounded-full px-2 text-[10px] ${activeTab === 'today' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'}`}>{todayCount}</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("all")}
-          className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+          className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold transition shadow-sm ${
             activeTab === "all"
-              ? "bg-slate-800 text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+              ? "bg-slate-800 text-white"
+              : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
           }`}
         >
-          All
+          All Bookings <span className={`flex h-5 items-center justify-center rounded-full px-2 text-[10px] ${activeTab === 'all' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'}`}>{bookings.length}</span>
         </button>
+
+        <div className="h-10 w-[1px] bg-slate-200 mx-2 hidden md:block" />
+
+        {BOOKING_STATUSES.map((status) => {
+          const count = getCount(status);
+          if (count === 0 && activeTab !== status) return null;
+          
+          return (
+            <button
+              key={status}
+              type="button"
+              onClick={() => setActiveTab(status)}
+              className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold transition shadow-sm ${
+                activeTab === status
+                  ? "bg-slate-800 text-white"
+                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              <div className={`h-2 w-2 rounded-full ${getBookingStatusColor(status).split(' ')[0]}`} />
+              <span className="capitalize">{status.replace('_', ' ')}</span>
+              <span className={`flex h-5 items-center justify-center rounded-full px-2 text-[10px] ${activeTab === status ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="space-y-4">

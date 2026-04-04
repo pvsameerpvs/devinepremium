@@ -19,6 +19,7 @@ interface OrderActionPanelProps {
 
 export function OrderActionPanel({
   activePanelType,
+  bookingId,
   activeMutation,
   inlineMessage,
   requestNote,
@@ -96,10 +97,10 @@ export function OrderActionPanel({
         <button
           type="button"
           onClick={onSubmit}
-          disabled={Boolean(activeMutation)}
+          disabled={Boolean(activeMutation) && activeMutation.includes(bookingId)}
           className="inline-flex w-full items-center justify-center rounded-full bg-[#00B4D8] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#0097b7] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto shadow-md"
         >
-          {activeMutation ? "Sending request..." : "Send request"}
+          {activeMutation && activeMutation.includes(bookingId) ? "Sending request..." : "Send request"}
         </button>
         <button
           type="button"
