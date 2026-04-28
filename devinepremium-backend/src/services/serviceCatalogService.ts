@@ -1,3 +1,4 @@
+import { IsNull } from "typeorm";
 import { AppDataSource } from "../config/data-source";
 import { ServiceCatalog } from "../entities/ServiceCatalog";
 import { ServiceCategory } from "../entities/ServiceCategory";
@@ -281,8 +282,9 @@ export const serviceCatalogService = {
 
       await serviceRepository().save(services);
     } else {
-      // Retro-fix: Update existing services with categories if missing
-      const existingServices = await serviceRepository().find({ where: { categoryId: undefined } });
+      const existingServices = await serviceRepository().find({
+        where: { categoryId: IsNull() },
+      });
       if (existingServices.length > 0) {
         for (const service of existingServices) {
           const defaultInput = DEFAULT_SERVICES.find((s) => s.slug === service.slug);

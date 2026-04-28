@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Script from "next/script";
 import { fetchServiceQuote, Service, type ServiceQuote } from "@/lib/services";
 import { Button } from "@/components/ui/button";
@@ -1556,10 +1557,13 @@ export function BookingStepper({ service }: BookingStepperProps) {
                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B4D8] rounded-full blur-3xl opacity-20 -mr-10 -mt-10" />
                  {service.imageUrl && (
                    <div className="relative z-10 mb-4 h-24 w-24 mx-auto overflow-hidden rounded-2xl border-2 border-white/10 shadow-xl">
-                     <img
+                     <Image
                        src={service.imageUrl}
                        alt={service.title}
-                       className="h-full w-full object-cover"
+                       fill
+                       sizes="96px"
+                       unoptimized
+                       className="object-cover"
                      />
                    </div>
                  )}

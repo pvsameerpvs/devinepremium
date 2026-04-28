@@ -1,6 +1,7 @@
 "use client";
 
 import { fetchActiveServices, fetchCategories, type Service, type ServiceCategory } from "@/lib/services";
+import Image from "next/image";
 import {
   Card,
   CardContent,
@@ -100,10 +101,13 @@ export function ServicesSection() {
             <Card className="h-full rounded-3xl border-border bg-card dp-card-hover overflow-hidden">
               {service.imageUrl && (
                 <div className="relative h-48 w-full overflow-hidden">
-                  <img
+                  <Image
                     src={service.imageUrl}
                     alt={service.title}
-                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    fill
+                    sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                    unoptimized
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                 </div>

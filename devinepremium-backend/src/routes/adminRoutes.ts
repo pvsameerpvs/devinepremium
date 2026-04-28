@@ -91,6 +91,7 @@ const servicePayloadSchema = z.object({
   pricingConfig: z.record(z.string(), z.any()).optional(),
   options: z.array(serviceOptionSchema).optional(),
   expectations: z.array(z.string()).optional(),
+  categoryId: z.string().uuid().nullable().optional(),
 });
 
 router.use(authenticate, requireAdmin);
@@ -131,23 +132,19 @@ router.post(
   "/services/upload",
   upload.single("file"),
   asyncHandler(async (req, res) => {
-    console.log("Starting image upload to Supabase...");
     if (!req.file) {
-      console.log("No file found in request.");
       res.status(400).json({ message: "No file uploaded." });
       return;
     }
 
     const supabase = createSupabaseAuthClient();
     const file = req.file;
-    const fileExt = file.originalname.split(".").pop();
+    const fileExt = file.originalname.split(".").pop() || "bin";
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
     const filePath = `catalog/${fileName}`;
 
-    console.log(`Uploading file to bucket: services, path: ${filePath}`);
-
     try {
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from("services")
         .upload(filePath, file.buffer, {
           contentType: file.mimetype,
@@ -155,24 +152,19 @@ router.post(
         });
 
       if (error) {
-        console.error("Supabase storage error:", error);
         throw error;
       }
-
-      console.log("Supabase upload successful:", data);
 
       const {
         data: { publicUrl },
       } = supabase.storage.from("services").getPublicUrl(filePath);
-
-      console.log("Generated public URL:", publicUrl);
 
       res.json({
         message: "File uploaded successfully.",
         url: publicUrl,
       });
     } catch (uploadError) {
-      console.error("Internal upload error:", uploadError);
+      console.error("Service image upload failed:", uploadError);
       res.status(500).json({
         message: uploadError instanceof Error ? uploadError.message : "Failed to upload image.",
       });
