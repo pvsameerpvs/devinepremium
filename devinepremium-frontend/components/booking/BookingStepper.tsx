@@ -5,6 +5,7 @@ import Script from "next/script";
 import { format } from "date-fns";
 import { FormProvider, useForm, useWatch, type FieldPath } from "react-hook-form";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import toast from "react-hot-toast";
 import { type CustomerAccountResponse, type SavedAddressRecord } from "@/lib/account";
 import { apiRequest } from "@/lib/api";
 import {
@@ -116,6 +117,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const leafletMapRef = useRef<any>(null);
   const leafletPinRef = useRef<any>(null);
+  const formTopRef = useRef<HTMLDivElement | null>(null);
 
   const localBreakdown = useMemo(
     () => calculateBookingBreakdown(service, serviceOptions),
@@ -451,7 +453,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
   async function handleSearchPlaces() {
     const query = placeQuery.trim();
     if (query.length < 3) {
-      setPlaceSearchError("Type at least 3 characters to search places.");
+      toast.error("Type at least 3 characters to search.");
       setPlaceResults([]);
       return;
     }
@@ -475,10 +477,10 @@ export function BookingStepper({ service }: BookingStepperProps) {
       const data = (await response.json()) as PlaceSearchResult[];
       setPlaceResults(Array.isArray(data) ? data : []);
       if (!data.length) {
-        setPlaceSearchError("No places found. Try another area/building name.");
+        toast.error("No places found.");
       }
     } catch {
-      setPlaceSearchError("Could not search places right now. Please try again.");
+      toast.error("Place search failed. Please try again.");
       setPlaceResults([]);
     } finally {
       setIsSearchingPlaces(false);
@@ -487,7 +489,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
 
   function handleUseCurrentLocation() {
     if (!navigator.geolocation) {
-      setLocationError("Geolocation is not supported on this browser.");
+      toast.error("Geolocation is not supported by your browser.");
       return;
     }
 
@@ -507,7 +509,9 @@ export function BookingStepper({ service }: BookingStepperProps) {
           2: "Unable to detect your location. Try again.",
           3: "Location request timed out. Please try again.",
         };
-        setLocationError(messageByCode[error.code] || "Unable to fetch your location.");
+        const message = messageByCode[error.code] || "Unable to fetch your location.";
+        toast.error(message);
+        setLocationError(message);
         setIsLocating(false);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
@@ -531,14 +535,22 @@ export function BookingStepper({ service }: BookingStepperProps) {
 
   async function validateCurrentStep() {
     if (currentStep === 0 && service.pricingMode !== "quote" && pricing.total <= 0) {
-      setServiceDetailsError(
-        "Please select at least one priced service option before continuing.",
-      );
+      const msg = "Please select at least one priced service option before continuing.";
+      toast.error(msg);
+      setServiceDetailsError(msg);
       return false;
     }
 
     const fields = VALIDATION_FIELDS[currentStep];
-    return fields.length ? trigger(fields, { shouldFocus: true }) : true;
+    const isValid = fields.length ? await trigger(fields, { shouldFocus: true }) : true;
+
+    if (!isValid) {
+      toast.error("Please fill all required fields correctly.");
+      formTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return false;
+    }
+
+    return true;
   }
 
   async function handleNext() {
@@ -583,23 +595,24 @@ export function BookingStepper({ service }: BookingStepperProps) {
     const values = getValues();
 
     if (!isValid) {
-      setBookingError("Please complete the required booking details.");
+      toast.error("Please complete the required booking details.");
+      formTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
 
     if (!values.address.city || !values.address.location) {
-      setBookingError("Please complete your location details before confirming.");
+      toast.error("Please complete your location details.");
       return;
     }
 
     if (!values.schedule.date || !values.schedule.timeSlot) {
-      setBookingError("Please select your booking date and preferred time.");
+      toast.error("Please select booking date and time.");
       return;
     }
 
     const session = getStoredUserSession();
     if (!session?.token) {
-      setBookingError("Please login to continue with your order.");
+      toast.error("Please login to continue.");
       redirectToLogin();
       return;
     }
@@ -655,6 +668,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
       });
 
       setIsModalOpen(false);
+      toast.success("Booking created successfully!");
 
       if (values.payment.method === "online" && response.payment?.id) {
         window.location.href = `/payment/checkout?paymentId=${response.payment.id}`;
@@ -665,16 +679,17 @@ export function BookingStepper({ service }: BookingStepperProps) {
     } catch (error) {
       if (isUserSessionError(error)) {
         clearUserSession();
-        setBookingError("Your session expired. Please log in again.");
+        toast.error("Your session expired. Please log in again.");
         redirectToLogin();
         return;
       }
 
-      setBookingError(
-        error instanceof Error
-          ? error.message
-          : "Unable to create booking right now. Please try again.",
-      );
+      const message = error instanceof Error
+        ? error.message
+        : "Unable to create booking right now. Please try again.";
+      
+      toast.error(message);
+      setBookingError(message);
     } finally {
       setIsSubmittingBooking(false);
     }
@@ -771,7 +786,10 @@ export function BookingStepper({ service }: BookingStepperProps) {
             }}
           />
 
-          <Card className="min-h-[500px] overflow-hidden border-none shadow-xl shadow-gray-200/50 ring-1 ring-gray-100">
+          <Card
+            ref={formTopRef}
+            className="min-h-[500px] overflow-hidden border-none shadow-xl shadow-gray-200/50 ring-1 ring-gray-100"
+          >
             <CardHeader className="border-b border-gray-100 bg-gray-50/50 p-5 pb-6 sm:p-8 sm:pb-8">
               <CardTitle className="flex items-center gap-2 text-xl font-bold sm:text-2xl">
                 {BOOKING_STEPS[currentStep].title}

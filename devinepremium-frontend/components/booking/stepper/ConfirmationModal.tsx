@@ -115,7 +115,7 @@ export function ConfirmationModal({
 
         <div className="space-y-3 border-t border-gray-100 bg-gray-50 p-6">
           {bookingError && (
-            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <p className="px-1 text-center text-sm font-semibold text-red-500 animate-in shake duration-300">
               {bookingError}
             </p>
           )}

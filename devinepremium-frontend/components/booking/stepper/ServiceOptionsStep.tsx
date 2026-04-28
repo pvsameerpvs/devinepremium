@@ -1,7 +1,8 @@
 "use client";
 
 import { useFormContext, useWatch } from "react-hook-form";
-import { Check, Minus, Plus } from "lucide-react";
+import { AlertCircle, Check, Minus, Plus } from "lucide-react";
+import { StepErrorSummary } from "./StepErrorSummary";
 import type { Service } from "@/lib/services";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -74,6 +75,7 @@ export function ServiceOptionsStep({
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <StepErrorSummary />
       <div className="grid gap-6">
         {service.options.map((option) => (
           <div key={option.id} className="space-y-3">
@@ -294,9 +296,10 @@ export function ServiceOptionsStep({
             <p className="mt-1 text-xs text-amber-300">{quoteError}</p>
           )}
           {serviceDetailsError && (
-            <p className="mt-2 text-sm font-medium text-red-300">
+            <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-red-500 animate-in shake duration-300">
+              <AlertCircle className="h-4 w-4 shrink-0" />
               {serviceDetailsError}
-            </p>
+            </div>
           )}
         </div>
 

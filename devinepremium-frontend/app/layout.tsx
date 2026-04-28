@@ -17,6 +17,8 @@ export const metadata: Metadata = {
     "Book trusted professionals for cleaning, painting, and maintenance in Dubai, Abu Dhabi & Sharjah. Devine Premier Technical Services — top-rated service at your doorstep.",
 };
 
+import { Toaster } from "react-hot-toast";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,6 +29,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <Toaster position="top-center" reverseOrder={false} />
         {children}
       </body>
     </html>

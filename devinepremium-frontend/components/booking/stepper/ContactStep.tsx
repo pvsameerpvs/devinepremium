@@ -1,6 +1,7 @@
 "use client";
 
 import { Controller, useFormContext } from "react-hook-form";
+import { StepErrorSummary } from "./StepErrorSummary";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -17,7 +18,12 @@ function FieldError({ message }: { message?: string }) {
     return null;
   }
 
-  return <p className="text-sm text-red-600">{message}</p>;
+  return (
+    <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-red-600 animate-in fade-in slide-in-from-top-1 duration-200">
+      <span className="h-1 w-1 rounded-full bg-red-600" />
+      {message}
+    </p>
+  );
 }
 
 export function ContactStep({
@@ -32,11 +38,15 @@ export function ContactStep({
 
   return (
     <div className="grid gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
+      <StepErrorSummary />
       <div className="grid gap-2">
         <Label htmlFor="fullName">Full Name</Label>
         <Input
           id="fullName"
-          className="h-12"
+          className={cn(
+            "h-12 transition-colors",
+            errors.contact?.fullName && "border-red-500 bg-red-50/50 focus:ring-red-200",
+          )}
           placeholder="John Doe"
           {...register("contact.fullName", {
             required: "Full name is required.",
@@ -54,7 +64,10 @@ export function ContactStep({
         <Input
           id="email"
           type="email"
-          className="h-12"
+          className={cn(
+            "h-12 transition-colors",
+            errors.contact?.email && "border-red-500 bg-red-50/50 focus:ring-red-200",
+          )}
           placeholder="john@example.com"
           readOnly={Boolean(accountEmail)}
           {...register("contact.email", {
@@ -78,7 +91,10 @@ export function ContactStep({
         <Input
           id="phone"
           type="tel"
-          className="h-12"
+          className={cn(
+            "h-12 transition-colors",
+            errors.contact?.phone && "border-red-500 bg-red-50/50 focus:ring-red-200",
+          )}
           placeholder="+971 50 123 4567"
           {...register("contact.phone", {
             required: "Phone number is required.",

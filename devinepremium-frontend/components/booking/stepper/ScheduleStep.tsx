@@ -1,6 +1,7 @@
 "use client";
 
 import { Controller, useFormContext } from "react-hook-form";
+import { StepErrorSummary } from "./StepErrorSummary";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { CUSTOMER_TIME_SLOTS } from "@/lib/booking";
@@ -27,7 +28,12 @@ function FieldError({ message }: { message?: string }) {
     return null;
   }
 
-  return <p className="text-sm text-red-600">{message}</p>;
+  return (
+    <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-red-600 animate-in fade-in slide-in-from-top-1 duration-200">
+      <span className="h-1 w-1 rounded-full bg-red-600" />
+      {message}
+    </p>
+  );
 }
 
 export function ScheduleStep() {
@@ -38,6 +44,7 @@ export function ScheduleStep() {
 
   return (
     <div className="flex flex-col space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+      <StepErrorSummary />
       <div className="flex flex-col space-y-3">
         <Label>Date of Service</Label>
         <Controller
@@ -51,8 +58,9 @@ export function ScheduleStep() {
                   type="button"
                   variant="outline"
                   className={cn(
-                    "h-12 w-full justify-start border-gray-300 text-left font-normal",
+                    "h-12 w-full justify-start border-gray-300 text-left font-normal transition-colors",
                     !field.value && "text-muted-foreground",
+                    errors.schedule?.date && "border-red-500 bg-red-50/50 focus:ring-red-200",
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
@@ -85,7 +93,12 @@ export function ScheduleStep() {
           rules={{ required: "Preferred time is required." }}
           render={({ field }) => (
             <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger className="h-12 border-gray-300">
+              <SelectTrigger
+                className={cn(
+                  "h-12 border-gray-300 transition-colors",
+                  errors.schedule?.timeSlot && "border-red-500 bg-red-50/50 focus:ring-red-200",
+                )}
+              >
                 <SelectValue placeholder="Select time" />
               </SelectTrigger>
               <SelectContent>

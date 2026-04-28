@@ -1,7 +1,8 @@
 "use client";
 
 import { Controller, useFormContext } from "react-hook-form";
-import { MapPin } from "lucide-react";
+import { AlertCircle, MapPin } from "lucide-react";
+import { StepErrorSummary } from "./StepErrorSummary";
 import { type SavedAddressRecord } from "@/lib/account";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -23,7 +24,12 @@ function FieldError({ message }: { message?: string }) {
     return null;
   }
 
-  return <p className="text-sm text-red-600">{message}</p>;
+  return (
+    <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-red-600 animate-in fade-in slide-in-from-top-1 duration-200">
+      <span className="h-1 w-1 rounded-full bg-red-600" />
+      {message}
+    </p>
+  );
 }
 
 function SavedAddressCard({
@@ -99,6 +105,8 @@ export function AddressStep({
 
   return (
     <div className="grid gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
+      <StepErrorSummary />
+
       {savedAddresses.length > 0 && (
         <div className="rounded-2xl border border-cyan-100 bg-cyan-50/60 p-5">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -138,7 +146,13 @@ export function AddressStep({
           rules={{ required: "City is required." }}
           render={({ field }) => (
             <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger id="city" className="h-12">
+              <SelectTrigger
+                id="city"
+                className={cn(
+                  "h-12 transition-colors",
+                  errors.address?.city && "border-red-500 bg-red-50/50 focus:ring-red-200",
+                )}
+              >
                 <SelectValue placeholder="Select City" />
               </SelectTrigger>
               <SelectContent>
@@ -206,7 +220,10 @@ export function AddressStep({
         <Input
           id="location"
           placeholder="e.g. Dubai Marina, JLT..."
-          className="h-12"
+          className={cn(
+            "h-12 transition-colors",
+            errors.address?.location && "border-red-500 bg-red-50/50 focus:ring-red-200",
+          )}
           {...register("address.location", {
             required: "Area / location is required.",
           })}
