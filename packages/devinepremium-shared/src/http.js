@@ -1,3 +1,12 @@
+class ApiRequestError extends Error {
+  constructor(message, status, payload = null) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.status = status;
+    this.payload = payload;
+  }
+}
+
 function resolveApiBaseUrl(value, fallbackBaseUrl = "http://localhost:4000") {
   return String(value || fallbackBaseUrl).replace(/\/$/, "");
 }
@@ -33,13 +42,14 @@ async function apiRequest(path, options = {}) {
         ? String(payload.message)
         : `Request failed with ${response.status}`;
 
-    throw new Error(message);
+    throw new ApiRequestError(message, response.status, payload);
   }
 
   return payload;
 }
 
 module.exports = {
+  ApiRequestError,
   resolveApiBaseUrl,
   apiRequest,
 };

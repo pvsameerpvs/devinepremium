@@ -15,7 +15,22 @@ export const authenticate = asyncHandler(
     }
 
     const token = authorization.replace("Bearer ", "").trim();
-    const payload = verifyAuthToken(token);
+    let payload;
+
+    try {
+      payload = verifyAuthToken(token);
+    } catch (error) {
+      const isExpiredToken =
+        error instanceof Error && error.name === "TokenExpiredError";
+
+      res.status(401).json({
+        message: isExpiredToken
+          ? "Your session expired. Please log in again."
+          : "Invalid session token.",
+      });
+      return;
+    }
+
     const user = await authService.getUserById(payload.sub);
 
     if (!user) {

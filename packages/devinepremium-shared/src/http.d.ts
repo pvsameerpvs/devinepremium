@@ -4,6 +4,12 @@ export interface ApiRequestOptions extends RequestInit {
   fallbackBaseUrl?: string;
 }
 
+export declare class ApiRequestError extends Error {
+  status: number;
+  payload: unknown;
+  constructor(message: string, status: number, payload?: unknown);
+}
+
 export declare function resolveApiBaseUrl(
   value?: string,
   fallbackBaseUrl?: string,

@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
   clearAdminSession,
   getStoredAdminSession,
   type AdminSession,
 } from "@/lib/auth";
+import { ApiRequestError } from "@/lib/api";
 import { AdminDashboardProvider, useAdminDashboard } from "./AdminDashboardProvider";
 import { DashboardHeader } from "./DashboardHeader";
 import { DashboardNavbar } from "./DashboardNavbar";
@@ -42,6 +43,16 @@ function AdminDashboardShellContent({
   useEffect(() => {
     clearPageMessage();
   }, [clearPageMessage, pathname]);
+
+  useEffect(() => {
+    if (
+      error instanceof ApiRequestError &&
+      (error.status === 401 || error.status === 403)
+    ) {
+      onLogout();
+      router.replace("/login/?error=session-expired");
+    }
+  }, [error, onLogout, router]);
 
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#fdf9f1_0%,#f7f2ea_35%,#eef3f9_100%)] px-3 py-8 sm:px-4 sm:py-12 xl:px-5">
@@ -108,6 +119,11 @@ export function AdminDashboardShell({
     setIsReady(true);
   }, []);
 
+  const handleLogout = useCallback(() => {
+    clearAdminSession();
+    setSession(null);
+  }, []);
+
   if (!isReady) {
     return (
       <main className="min-h-screen bg-slate-50 px-4 py-16">
@@ -142,10 +158,7 @@ export function AdminDashboardShell({
     <AdminDashboardProvider session={session}>
       <AdminDashboardShellContent
         session={session}
-        onLogout={() => {
-          clearAdminSession();
-          setSession(null);
-        }}
+        onLogout={handleLogout}
       >
         {children}
       </AdminDashboardShellContent>

@@ -66,7 +66,7 @@ NODE_ENV=development
 DATABASE_DRIVER=postgres
 DATABASE_URL=postgresql://YOUR_SUPABASE_CONNECTION_STRING
 DATABASE_SSL=true
-DB_SYNCHRONIZE=true
+DB_SYNCHRONIZE=false
 
 JWT_SECRET=change-me
 JWT_EXPIRES_IN=7d
@@ -81,8 +81,8 @@ SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 
 Notes:
 
-- for first setup, `DB_SYNCHRONIZE=true` is easiest
-- for production, later change to `DB_SYNCHRONIZE=false` and move to migrations
+- keep `DB_SYNCHRONIZE=false` for Supabase/Postgres
+- use migrations or reviewed SQL for database changes instead of TypeORM auto-sync
 - keep `DATABASE_SSL=true` for Supabase
 
 ## Step 3: Configure Frontend For Supabase Google Login
@@ -192,14 +192,14 @@ Check:
 
 ## Step 9: First-Time Database Creation
 
-When backend starts with:
+For a first-time Supabase database, create tables with a reviewed migration or SQL script. Do not rely on TypeORM auto-sync against Supabase/Postgres:
 
 ```env
 DATABASE_DRIVER=postgres
-DB_SYNCHRONIZE=true
+DB_SYNCHRONIZE=false
 ```
 
-TypeORM will create the current tables in Supabase Postgres:
+The current backend-owned tables are:
 
 - `users`
 - `bookings`

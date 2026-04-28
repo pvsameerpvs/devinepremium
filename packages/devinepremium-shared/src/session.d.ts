@@ -19,4 +19,12 @@ export interface SessionStore<TSession> {
 
 export declare function createSessionStore<TSession>(
   storageKey: string,
+  options?: { storage?: "localStorage" | "cookie" },
 ): SessionStore<TSession>;
+
+export declare function getJwtExpiration(token: string): number | null;
+
+export declare function hasTokenExpired(
+  token: string,
+  now?: number,
+): boolean;

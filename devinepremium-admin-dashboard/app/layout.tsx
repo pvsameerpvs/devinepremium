@@ -17,6 +17,8 @@ export const metadata: Metadata = {
   description: "Operations dashboard for bookings, payments, and users.",
 };
 
+import { AuthProvider } from "@/lib/auth-context";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,7 +27,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

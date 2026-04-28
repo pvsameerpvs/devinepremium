@@ -7,6 +7,7 @@ import { apiRequest } from "@/lib/api";
 import {
   clearUserSession,
   getStoredUserSession,
+  isUserSessionError,
   type UserSession,
 } from "@/lib/auth";
 import {
@@ -83,6 +84,19 @@ export function CustomerAccountWrapper({
       savedAddresses: accountData?.savedAddresses.length ?? 0,
     };
   }, [accountData, bookingData]);
+
+  useEffect(() => {
+    const authError = [accountError, bookingError].find((error) =>
+      isUserSessionError(error),
+    );
+
+    if (!session || !authError) {
+      return;
+    }
+
+    clearUserSession();
+    setSession(null);
+  }, [accountError, bookingError, session]);
 
   async function handleLogout() {
     if (isSupabaseConfigured()) {

@@ -1,15 +1,17 @@
 "use client";
 
+import { AdminSession, saveAdminSession } from "@/lib/auth";
+import { useAuth } from "@/lib/auth-context";
+import { apiRequest } from "@/lib/api";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiRequest } from "@/lib/api";
-import { saveAdminSession, type AdminSession } from "@/lib/auth";
 
 interface LoginResponse extends AdminSession {
   message: string;
 }
 
 export default function AdminLoginPage() {
+  const { refreshSession } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,6 +40,10 @@ export default function AdminLoginPage() {
         token: session.token,
         user: session.user,
       });
+
+      // Update the reactive context immediately
+      refreshSession();
+      
       router.push("/dashboard");
     } catch (loginError) {
       setError(

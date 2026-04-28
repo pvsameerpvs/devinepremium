@@ -34,7 +34,11 @@ import { type CustomerAccountResponse, type SavedAddressRecord } from "@/lib/acc
 import { CUSTOMER_TIME_SLOTS } from "@/lib/booking";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/api";
-import { getStoredUserSession } from "@/lib/auth";
+import {
+  clearUserSession,
+  getStoredUserSession,
+  isUserSessionError,
+} from "@/lib/auth";
 import { CalendarIcon, Check, ChevronRight, ChevronLeft, Minus, Plus, MapPin, Clock, User, CreditCard } from "lucide-react";
 
 interface BookingStepperProps {
@@ -487,9 +491,13 @@ export function BookingStepper({ service }: BookingStepperProps) {
           setPlaceQuery((current) => current || formatAddressLabel(defaultAddress));
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (!isActive) {
           return;
+        }
+
+        if (isUserSessionError(error)) {
+          clearUserSession();
         }
 
         setSavedAddresses([]);
@@ -781,6 +789,13 @@ export function BookingStepper({ service }: BookingStepperProps) {
 
       window.location.href = "/account";
     } catch (error) {
+      if (isUserSessionError(error)) {
+        clearUserSession();
+        setBookingError("Your session expired. Please log in again.");
+        redirectToLogin();
+        return;
+      }
+
       setBookingError(
         error instanceof Error
           ? error.message
