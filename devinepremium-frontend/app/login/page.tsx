@@ -16,7 +16,6 @@ import {
   LockKeyhole,
   Mail,
   Phone,
-  Sparkles,
   User,
 } from "lucide-react";
 

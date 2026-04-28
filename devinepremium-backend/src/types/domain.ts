@@ -3,13 +3,17 @@ export {
   BOOKING_STATUSES,
   PAYMENT_METHODS,
   PAYMENT_STATUSES,
+  SERVICE_PRICING_MODES,
 } from "@devinepremium/shared";
+
+import type { ServicePricingMode } from "@devinepremium/shared";
 
 export type {
   UserRole,
   BookingStatus,
   PaymentMethod,
   PaymentStatus,
+  ServicePricingMode,
 } from "@devinepremium/shared";
 
 export const BOOKING_CHANGE_REQUEST_TYPES = [
@@ -53,6 +57,58 @@ export interface BookingPricing {
   vat: number;
   total: number;
   lineItems: BookingPricingLineItem[];
+}
+
+export interface ServiceOptionChoice {
+  label: string;
+  value: string;
+  price?: number;
+}
+
+export interface ServiceOption {
+  id: string;
+  label: string;
+  price?: number;
+  min?: number;
+  type: "checkbox" | "radio" | "quantity" | "select";
+  options?: ServiceOptionChoice[];
+  defaultValue?: unknown;
+}
+
+export interface ServicePricingConfig {
+  vatRate?: number;
+  recurring?: {
+    enabled: boolean;
+    frequencyOptionId?: string;
+    options: Array<{
+      value: string;
+      label: string;
+      visitsPerMonth: number;
+      discountPercent: number;
+    }>;
+  };
+  hourly?: {
+    rate: number;
+    hoursOptionId: string;
+    staffCountOptionId?: string;
+  };
+  quote?: {
+    startingFrom?: number;
+  };
+}
+
+export interface ServiceSnapshot {
+  id: string;
+  title: string;
+  slug: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  basePrice: number;
+  priceUnit?: string | null;
+  pricingMode: ServicePricingMode;
+  pricingConfig: ServicePricingConfig;
+  options: ServiceOption[];
+  expectations: string[];
 }
 
 export interface BookingContact {

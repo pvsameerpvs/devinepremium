@@ -3,15 +3,20 @@ import { z } from "zod";
 import { authenticate, requireAdmin } from "../middleware/auth";
 import { bookingService } from "../services/bookingService";
 import { paymentService } from "../services/paymentService";
+import { serviceCatalogService } from "../services/serviceCatalogService";
 import { staffService } from "../services/staffService";
 import {
   BOOKING_STATUSES,
   PAYMENT_STATUSES,
+  SERVICE_PRICING_MODES,
   STAFF_AVAILABILITY_DAYS,
 } from "../types/domain";
+import multer from "multer";
+import { createSupabaseAuthClient } from "../lib/supabase";
 import { asyncHandler } from "../utils/http";
 
 const router = Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 const updateBookingStatusSchema = z.object({
   status: z.enum(BOOKING_STATUSES),
@@ -57,6 +62,37 @@ const assignStaffSchema = z.object({
   staffId: z.string().uuid().nullable().optional(),
 });
 
+const serviceOptionChoiceSchema = z.object({
+  label: z.string().min(1),
+  value: z.string().min(1),
+  price: z.number().min(0).optional(),
+});
+
+const serviceOptionSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  price: z.number().min(0).optional(),
+  min: z.number().min(0).optional(),
+  type: z.enum(["checkbox", "radio", "quantity", "select"]),
+  options: z.array(serviceOptionChoiceSchema).optional(),
+  defaultValue: z.unknown().optional(),
+});
+
+const servicePayloadSchema = z.object({
+  title: z.string().min(2),
+  slug: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
+  imageUrl: z.string().nullable().optional(),
+  isActive: z.boolean().optional(),
+  sortOrder: z.number().int().optional(),
+  basePrice: z.number().min(0).optional(),
+  priceUnit: z.string().nullable().optional(),
+  pricingMode: z.enum(SERVICE_PRICING_MODES),
+  pricingConfig: z.record(z.string(), z.any()).optional(),
+  options: z.array(serviceOptionSchema).optional(),
+  expectations: z.array(z.string()).optional(),
+});
+
 router.use(authenticate, requireAdmin);
 
 router.get(
@@ -72,6 +108,118 @@ router.get(
   asyncHandler(async (_req, res) => {
     const bookings = await bookingService.listAdminBookings();
     res.json({ bookings });
+  }),
+);
+
+router.get(
+  "/services",
+  asyncHandler(async (_req, res) => {
+    const services = await serviceCatalogService.listServices();
+    res.json({ services });
+  }),
+);
+
+router.get(
+  "/categories",
+  asyncHandler(async (_req, res) => {
+    const categories = await serviceCatalogService.listCategories();
+    res.json({ categories });
+  }),
+);
+
+router.post(
+  "/services/upload",
+  upload.single("file"),
+  asyncHandler(async (req, res) => {
+    console.log("Starting image upload to Supabase...");
+    if (!req.file) {
+      console.log("No file found in request.");
+      res.status(400).json({ message: "No file uploaded." });
+      return;
+    }
+
+    const supabase = createSupabaseAuthClient();
+    const file = req.file;
+    const fileExt = file.originalname.split(".").pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+    const filePath = `catalog/${fileName}`;
+
+    console.log(`Uploading file to bucket: services, path: ${filePath}`);
+
+    try {
+      const { data, error } = await supabase.storage
+        .from("services")
+        .upload(filePath, file.buffer, {
+          contentType: file.mimetype,
+          upsert: true,
+        });
+
+      if (error) {
+        console.error("Supabase storage error:", error);
+        throw error;
+      }
+
+      console.log("Supabase upload successful:", data);
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("services").getPublicUrl(filePath);
+
+      console.log("Generated public URL:", publicUrl);
+
+      res.json({
+        message: "File uploaded successfully.",
+        url: publicUrl,
+      });
+    } catch (uploadError) {
+      console.error("Internal upload error:", uploadError);
+      res.status(500).json({
+        message: uploadError instanceof Error ? uploadError.message : "Failed to upload image.",
+      });
+    }
+  }),
+);
+
+router.post(
+  "/services",
+  asyncHandler(async (req, res) => {
+    const input = servicePayloadSchema.parse(req.body);
+    const service = await serviceCatalogService.createService(input);
+
+    res.status(201).json({
+      message: "Service created successfully.",
+      service,
+    });
+  }),
+);
+
+router.patch(
+  "/services/:serviceId",
+  asyncHandler(async (req, res) => {
+    const input = servicePayloadSchema.parse(req.body);
+    const service = await serviceCatalogService.updateService(
+      String(req.params.serviceId),
+      input,
+    );
+
+    res.json({
+      message: "Service updated successfully.",
+      service,
+    });
+  }),
+);
+
+router.delete(
+  "/services/:serviceId",
+  asyncHandler(async (req, res) => {
+    const service = await serviceCatalogService.deleteService(
+      String(req.params.serviceId),
+    );
+
+    res.json({
+      message: "Service deleted successfully.",
+      service,
+    });
   }),
 );
 

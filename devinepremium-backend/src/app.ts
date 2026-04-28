@@ -6,6 +6,7 @@ import adminRoutes from "./routes/adminRoutes";
 import authRoutes from "./routes/authRoutes";
 import bookingRoutes from "./routes/bookingRoutes";
 import paymentRoutes from "./routes/paymentRoutes";
+import serviceRoutes from "./routes/serviceRoutes";
 import { HttpError } from "./utils/http";
 
 export function createApp() {
@@ -35,9 +36,14 @@ export function createApp() {
 
   app.use("/api/v1/auth", authRoutes);
   app.use("/api/v1/account", accountRoutes);
+  app.use("/api/v1/services", serviceRoutes);
   app.use("/api/v1/bookings", bookingRoutes);
   app.use("/api/v1/payments", paymentRoutes);
   app.use("/api/v1/admin", adminRoutes);
+
+  app.use((_req, res) => {
+    res.status(404).json({ message: "Route not found." });
+  });
 
   app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     const message =

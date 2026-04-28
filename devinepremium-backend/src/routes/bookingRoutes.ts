@@ -44,7 +44,7 @@ const createBookingSchema = z.object({
         amount: z.number(),
       }),
     ),
-  }),
+  }).optional(),
   saveAddress: z
     .object({
       label: z.string().min(2),

@@ -23,3 +23,12 @@ export declare const PAYMENT_STATUSES: readonly [
   "refunded",
 ];
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+
+export declare const SERVICE_PRICING_MODES: readonly [
+  "hourly",
+  "package",
+  "quantity",
+  "area",
+  "quote",
+];
+export type ServicePricingMode = (typeof SERVICE_PRICING_MODES)[number];

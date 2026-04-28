@@ -20,9 +20,18 @@ const PAYMENT_STATUSES = [
   "refunded",
 ];
 
+const SERVICE_PRICING_MODES = [
+  "hourly",
+  "package",
+  "quantity",
+  "area",
+  "quote",
+];
+
 module.exports = {
   USER_ROLES,
   BOOKING_STATUSES,
   PAYMENT_METHODS,
   PAYMENT_STATUSES,
+  SERVICE_PRICING_MODES,
 };

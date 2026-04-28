@@ -5,6 +5,8 @@ import { Booking } from "../entities/Booking";
 import { BookingStatusHistory } from "../entities/BookingStatusHistory";
 import { Payment } from "../entities/Payment";
 import { SavedAddress } from "../entities/SavedAddress";
+import { ServiceCatalog } from "../entities/ServiceCatalog";
+import { ServiceCategory } from "../entities/ServiceCategory";
 import { StaffMember } from "../entities/StaffMember";
 import { User } from "../entities/User";
 
@@ -15,6 +17,8 @@ const sharedOptions = {
     BookingStatusHistory,
     Payment,
     SavedAddress,
+    ServiceCatalog,
+    ServiceCategory,
     StaffMember,
   ],
   synchronize: env.DB_SYNCHRONIZE,

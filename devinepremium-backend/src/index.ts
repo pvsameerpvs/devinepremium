@@ -2,6 +2,7 @@ import { createApp } from "./app";
 import { AppDataSource } from "./config/data-source";
 import { env } from "./config/env";
 import { authService } from "./services/authService";
+import { serviceCatalogService } from "./services/serviceCatalogService";
 
 async function bootstrap() {
   await AppDataSource.initialize();
@@ -9,6 +10,7 @@ async function bootstrap() {
     env.SEED_ADMIN_EMAIL,
     env.SEED_ADMIN_PASSWORD,
   );
+  await serviceCatalogService.ensureSeedServices();
 
   const app = createApp();
   app.listen(env.PORT, () => {

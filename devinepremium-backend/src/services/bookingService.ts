@@ -21,6 +21,7 @@ import {
   SavedAddressInput,
 } from "../types/domain";
 import { HttpError } from "../utils/http";
+import { serviceCatalogService } from "./serviceCatalogService";
 
 interface CreateBookingInput {
   serviceId: string;
@@ -31,7 +32,7 @@ interface CreateBookingInput {
   schedule: BookingSchedule;
   contact: BookingContact;
   paymentMethod: PaymentMethod;
-  pricing: BookingPricing;
+  pricing?: BookingPricing;
   saveAddress?: {
     label: string;
     isDefault?: boolean;
@@ -274,23 +275,33 @@ async function assertStaffHasNoSlotConflict(input: {
 export const bookingService = {
   async createBookingForUser(input: CreateBookingInput, user: User) {
     const email = normalizeEmail(user.email);
+    const service = await serviceCatalogService.getServiceBySlug(
+      input.serviceSlug,
+      { activeOnly: true },
+    );
+    const pricing = serviceCatalogService.calculatePricing(
+      service,
+      input.serviceOptions,
+    );
+    const serviceSnapshot = serviceCatalogService.createServiceSnapshot(service);
 
     await assertUserSlotRules({
       userId: user.id,
-      serviceId: input.serviceId,
+      serviceId: service.id,
       address: input.address,
       schedule: input.schedule,
     });
 
     const booking = bookingRepository().create({
       bookingReference: createReference("DP"),
-      serviceId: input.serviceId,
-      serviceSlug: input.serviceSlug,
-      serviceTitle: input.serviceTitle,
+      serviceId: service.id,
+      serviceSlug: service.slug,
+      serviceTitle: service.title,
       serviceOptions: input.serviceOptions,
+      serviceSnapshot,
       address: input.address,
       schedule: input.schedule,
-      pricing: input.pricing,
+      pricing,
       status: "pending",
       paymentMethod: input.paymentMethod,
       paymentStatus: input.paymentMethod === "online" ? "pending" : "cash_due",
@@ -299,10 +310,10 @@ export const bookingService = {
       contactPhone: input.contact.phone?.trim() || null,
       notes: input.contact.instructions?.trim() || null,
       customerRequest: null,
-      subtotal: input.pricing.subtotal,
-      discountAmount: input.pricing.discount,
-      vatAmount: input.pricing.vat,
-      totalAmount: input.pricing.total,
+      subtotal: pricing.subtotal,
+      discountAmount: pricing.discount,
+      vatAmount: pricing.vat,
+      totalAmount: pricing.total,
       currency: "AED",
       userId: user.id,
       assignedStaffId: null,
@@ -318,14 +329,15 @@ export const bookingService = {
       method: input.paymentMethod,
       provider: input.paymentMethod === "online" ? "mock-gateway" : "cash",
       status: input.paymentMethod === "online" ? "pending" : "cash_due",
-      amount: input.pricing.total,
+      amount: pricing.total,
       currency: "AED",
       checkoutReference: createReference(
         input.paymentMethod === "online" ? "PAY" : "CASH",
       ),
       metadata: {
-        serviceTitle: input.serviceTitle,
-        lineItems: input.pricing.lineItems,
+        serviceTitle: service.title,
+        serviceSlug: service.slug,
+        lineItems: pricing.lineItems,
       },
       paidAt: null,
     });

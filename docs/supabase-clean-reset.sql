@@ -80,6 +80,24 @@ create table public.staff_members (
   "updatedAt" timestamptz not null default now()
 );
 
+create table public.services (
+  id uuid primary key default gen_random_uuid(),
+  title varchar(255) not null,
+  slug varchar(128) not null unique,
+  description text,
+  "imageUrl" text,
+  "isActive" boolean not null default true,
+  "sortOrder" integer not null default 0,
+  "basePrice" double precision not null default 0,
+  "priceUnit" varchar(64),
+  "pricingMode" varchar(32) not null default 'package',
+  "pricingConfig" text not null default '{}',
+  options text not null default '[]',
+  expectations text not null default '[]',
+  "createdAt" timestamptz not null default now(),
+  "updatedAt" timestamptz not null default now()
+);
+
 create table public.bookings (
   id uuid primary key default gen_random_uuid(),
   "bookingReference" varchar(64) not null unique,
@@ -87,6 +105,7 @@ create table public.bookings (
   "serviceSlug" varchar(128) not null,
   "serviceTitle" varchar(255) not null,
   "serviceOptions" text not null,
+  "serviceSnapshot" text,
   address text not null,
   schedule text not null,
   pricing text not null,
@@ -157,6 +176,9 @@ create index "idx_bookings_userId" on public.bookings("userId");
 create index "idx_bookings_assignedStaffId" on public.bookings("assignedStaffId");
 create index "idx_bookings_status" on public.bookings(status);
 create index "idx_bookings_paymentStatus" on public.bookings("paymentStatus");
+create index "idx_services_slug" on public.services(slug);
+create index "idx_services_isActive_sortOrder"
+  on public.services("isActive", "sortOrder");
 create index "idx_payments_bookingId" on public.payments("bookingId");
 create index "idx_payments_userId" on public.payments("userId");
 create index "idx_booking_status_history_bookingId"
@@ -164,6 +186,7 @@ create index "idx_booking_status_history_bookingId"
 create index "idx_saved_addresses_userId" on public.saved_addresses("userId");
 
 alter table public.users enable row level security;
+alter table public.services enable row level security;
 alter table public.staff_members enable row level security;
 alter table public.bookings enable row level security;
 alter table public.payments enable row level security;
@@ -171,6 +194,7 @@ alter table public.booking_status_history enable row level security;
 alter table public.saved_addresses enable row level security;
 
 revoke all on table public.users from anon, authenticated;
+revoke all on table public.services from anon, authenticated;
 revoke all on table public.staff_members from anon, authenticated;
 revoke all on table public.bookings from anon, authenticated;
 revoke all on table public.payments from anon, authenticated;

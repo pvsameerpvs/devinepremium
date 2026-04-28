@@ -16,6 +16,7 @@ import {
   BookingStatus,
   PaymentMethod,
   PaymentStatus,
+  ServiceSnapshot,
 } from "../types/domain";
 import { Payment } from "./Payment";
 import { BookingStatusHistory } from "./BookingStatusHistory";
@@ -41,6 +42,9 @@ export class Booking {
 
   @Column({ type: "simple-json" })
   serviceOptions!: Record<string, unknown>;
+
+  @Column({ type: "simple-json", nullable: true })
+  serviceSnapshot!: ServiceSnapshot | null;
 
   @Column({ type: "simple-json" })
   address!: BookingAddress;

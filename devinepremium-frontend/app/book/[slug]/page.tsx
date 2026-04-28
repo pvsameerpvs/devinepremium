@@ -1,5 +1,5 @@
 
-import { getServiceBySlug, SERVICES } from "@/lib/services";
+import { fetchServiceBySlug } from "@/lib/services";
 import { notFound } from "next/navigation";
 import { BookingStepper } from "@/components/booking/BookingStepper";
 import Link from "next/link";
@@ -12,15 +12,11 @@ interface PageProps {
   }>;
 }
 
-export async function generateStaticParams() {
-  return SERVICES.map((service) => ({
-    slug: service.slug,
-  }));
-}
+export const dynamic = "force-dynamic";
 
 export default async function BookServicePage({ params }: PageProps) {
   const { slug } = await params;
-  const service = getServiceBySlug(slug);
+  const service = await fetchServiceBySlug(slug);
 
   if (!service) {
     notFound();

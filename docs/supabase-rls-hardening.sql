@@ -15,6 +15,7 @@ alter table public.payments enable row level security;
 alter table public.booking_status_history enable row level security;
 alter table public.saved_addresses enable row level security;
 alter table public.staff_members enable row level security;
+alter table public.services enable row level security;
 
 revoke all on table public.users from anon, authenticated;
 revoke all on table public.bookings from anon, authenticated;
@@ -22,6 +23,7 @@ revoke all on table public.payments from anon, authenticated;
 revoke all on table public.booking_status_history from anon, authenticated;
 revoke all on table public.saved_addresses from anon, authenticated;
 revoke all on table public.staff_members from anon, authenticated;
+revoke all on table public.services from anon, authenticated;
 
 commit;
 
@@ -35,6 +37,7 @@ commit;
 --     'payments',
 --     'booking_status_history',
 --     'saved_addresses',
+--     'services',
 --     'staff_members'
 --   )
 -- order by tablename;

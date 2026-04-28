@@ -25,6 +25,12 @@ export const dashboardSections = [
     href: "/dashboard/staff",
   },
   {
+    id: "services",
+    label: "Services",
+    description: "Website services, images, pricing mode, and add-ons",
+    href: "/dashboard/services",
+  },
+  {
     id: "payments",
     label: "Payments",
     description: "Cash collection and online follow-up",
@@ -63,6 +69,10 @@ export function getDashboardSectionFromPathname(
 
   if (pathname.startsWith("/dashboard/staff")) {
     return "staff";
+  }
+
+  if (pathname.startsWith("/dashboard/services")) {
+    return "services";
   }
 
   if (pathname.startsWith("/dashboard/payments")) {

@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { getStoredUserSession } from "@/lib/auth";
-import { SERVICES } from "@/lib/services";
+import { fetchActiveServices, type Service } from "@/lib/services";
 import {
   Card,
   CardContent,
@@ -18,7 +19,7 @@ import {
 
 const SERVICE_IMAGE_FALLBACK = "/hero-cleaning.jpg";
 
-function formatServicePrice(service: (typeof SERVICES)[number]) {
+function formatServicePrice(service: Service) {
   if (service.basePrice > 0) {
     if (service.priceUnit === "/hr") {
       return `From ${service.basePrice} AED/hr + VAT`;
@@ -40,6 +41,21 @@ function formatServicePrice(service: (typeof SERVICES)[number]) {
 
 export function HeroSection() {
   const router = useRouter();
+  const [services, setServices] = useState<Service[]>([]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    void fetchActiveServices().then((nextServices) => {
+      if (isActive) {
+        setServices(nextServices);
+      }
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   function handleServiceClick(slug: string) {
     const session = getStoredUserSession();
@@ -73,7 +89,7 @@ export function HeroSection() {
           </div>
 
           <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {SERVICES.map((service) => (
+            {services.map((service) => (
               <button 
                 key={service.id} 
                 type="button" 

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Script from "next/script";
-import { Service } from "@/lib/services";
+import { fetchServiceQuote, Service, type ServiceQuote } from "@/lib/services";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -122,6 +122,9 @@ export function BookingStepper({ service }: BookingStepperProps) {
   const [placeResults, setPlaceResults] = useState<PlaceSearchResult[]>([]);
   const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
   const [placeSearchError, setPlaceSearchError] = useState("");
+  const [serviceQuote, setServiceQuote] = useState<ServiceQuote | null>(null);
+  const [isQuoteLoading, setIsQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState("");
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const leafletMapRef = useRef<any>(null);
   const leafletPinRef = useRef<any>(null);
@@ -161,147 +164,114 @@ export function BookingStepper({ service }: BookingStepperProps) {
 
   // Pricing: subtotal (ex VAT) -> discounts -> VAT -> grand total
   const calculateBreakdown = () => {
-      let subtotal = 0;
-      let discount = 0;
-      let discountLabel: string | null = null;
-      const items: { label: string; amount: number }[] = [];
+    let subtotal = 0;
+    let discount = 0;
+    let discountLabel: string | null = null;
+    const items: { label: string; amount: number }[] = [];
 
-      // Special handling for maid cleaning to be more intuitive
-       if (service.id === 'maid-cleaning') {
-           const hours = Number(formData.serviceOptions['hours']) || 0;
-           const crew = Number(formData.serviceOptions['crew']) || 0;
-           const frequency = String(formData.serviceOptions['frequency'] || "one-time");
+    const pricingMode = service.pricingMode || "package";
+    const pricingConfig = service.pricingConfig || {};
 
-           const maidDiscountRateByFrequency: Record<string, number> = {
-             weekly: 0.05,
-             "2-times-weekly": 0.1,
-             "3-times-weekly": 0.15,
-             "4-times-weekly": 0.15,
-             "5-times-weekly": 0.15,
-             "6-times-weekly": 0.15,
-             "bi-weekly": 0.05,
-             "every-3-weeks": 0.05,
-             "every-4-weeks": 0.05,
-             "every-5-weeks": 0.05,
-             "every-6-weeks": 0.05,
-           };
-           const maidVisitsPerMonthByFrequency: Record<string, number> = {
-             "one-time": 1,
-             weekly: 4,
-             "2-times-weekly": 8,
-             "3-times-weekly": 12,
-             "4-times-weekly": 16,
-             "5-times-weekly": 20,
-             "6-times-weekly": 24,
-             "bi-weekly": 2,
-             "every-3-weeks": 4 / 3,
-             "every-4-weeks": 1,
-             "every-5-weeks": 0.8,
-             "every-6-weeks": 2 / 3,
-           };
+    // 1. Handle Base Price / Labor
+    if (pricingMode === "hourly" && pricingConfig.hourly) {
+      const hours = Number(formData.serviceOptions[pricingConfig.hourly.hoursOptionId]) || 0;
+      const crew = pricingConfig.hourly.staffCountOptionId
+        ? Number(formData.serviceOptions[pricingConfig.hourly.staffCountOptionId]) || 1
+        : 1;
+      const rate = pricingConfig.hourly.rate || service.basePrice || 0;
 
-           const maidDiscountRate = maidDiscountRateByFrequency[frequency] || 0;
-           const visitsPerMonth = maidVisitsPerMonthByFrequency[frequency] || 1;
-           const visitsPerMonthLabel = Number.isInteger(visitsPerMonth)
-             ? String(visitsPerMonth)
-             : visitsPerMonth.toFixed(1);
-           const recurringSuffix =
-             frequency === "one-time"
-               ? ""
-               : ` x ${visitsPerMonthLabel} visit(s)/month`;
-            
-           if (hours > 0 && crew > 0) {
-               const laborPerVisit = hours * crew * service.basePrice;
-               const laborTotal = laborPerVisit * visitsPerMonth;
-               subtotal += laborTotal;
-               items.push({ 
-                   label: `${crew} Cleaner(s) x ${hours} Hour(s) @ ${service.basePrice} AED/hr${recurringSuffix}`,
-                   amount: laborTotal 
-               });
+      if (hours > 0) {
+        const laborTotal = hours * crew * rate;
+        subtotal += laborTotal;
+        items.push({
+          label: `${crew} Staff x ${hours} Hour(s) @ ${rate} AED/hr`,
+          amount: laborTotal,
+        });
+      }
+    } else if (pricingMode !== "quote" && service.basePrice > 0 && service.priceUnit !== "starting from") {
+      subtotal += service.basePrice;
+      items.push({ label: "Base Price", amount: service.basePrice });
+    }
 
-               if (maidDiscountRate > 0) {
-                 discount += laborTotal * maidDiscountRate;
-                 discountLabel = `Offer (${Math.round(maidDiscountRate * 100)}%)`;
-               }
-           }
+    // 2. Handle Options (Add-ons, Selections, Quantities)
+    service.options.forEach((opt) => {
+      const val = formData.serviceOptions[opt.id];
+      if (!val) return;
 
-          const extras = formData.serviceOptions['extras'] || [];
-            // Assuming options structure has prices for extras
-            // We need to look up the option definition in service.options
-            const extraOpt = service.options.find(o => o.id === 'extras');
-            if (extraOpt && extraOpt.options) {
-                extras.forEach((val: string) => {
-                    const item = extraOpt.options?.find(o => o.value === val);
-                    const price = item?.price || (val === 'supplies' ? 10 : 0); // Fallback for hardcoded
-                      if (price > 0) {
-                          const extraTotal = price * visitsPerMonth;
-                          subtotal += extraTotal;
-                          items.push({ label: `${item?.label || val}${recurringSuffix}`, amount: extraTotal });
-                      }
-                 });
-             }
-       } else {
-         // Generic Service Logic
-         // Only add base price if it's a fixed fee, not a "starting from" placeholder or per-unit rate
-         if (service.basePrice > 0 && service.priceUnit !== 'starting from' && service.priceUnit !== '/hr') {
-            subtotal += service.basePrice;
-            items.push({ label: "Base Price", amount: service.basePrice });
-         }
-
-        service.options.forEach(opt => {
-         const val = formData.serviceOptions[opt.id];
-         if (val) {
-             if (opt.type === 'quantity' && opt.price) {
-                 const qty = Number(val);
-                  if (qty > 0) {
-                     const lineTotal = qty * opt.price;
-                     subtotal += lineTotal;
-                     items.push({ label: `${opt.label} (x${qty})`, amount: lineTotal });
-                  }
-              }
-              else if (opt.type === 'checkbox' && Array.isArray(val) && opt.options) {
-                   val.forEach((s: string) => {
-                       const o = opt.options?.find(x => x.value === s);
-                       if (o && o.price) {
-                           subtotal += o.price;
-                           items.push({ label: o.label, amount: o.price });
-                       }
-                   });
-              }
-              else if (opt.type === 'select' && opt.options) {
-                  const o = opt.options.find(x => x.value === val);
-                  if (o && o.price) {
-                     // If select overrides base label
-                     subtotal += o.price;
-                     items.push({ label: o.label, amount: o.price });
-                  }
-              }
-              else if (opt.type === 'radio' && opt.options) {
-                 const o = opt.options.find(x => x.value === val);
-                 if (o && o.price) {
-                     subtotal += o.price;
-                     items.push({ label: o.label, amount: o.price });
-                 }
-              }
+      if (opt.type === "quantity" && opt.price) {
+        const qty = Number(val);
+        if (qty > 0) {
+          const lineTotal = qty * opt.price;
+          subtotal += lineTotal;
+          items.push({ label: `${opt.label} (x${qty})`, amount: lineTotal });
+        }
+      } else if (opt.type === "checkbox" && Array.isArray(val) && opt.options) {
+        val.forEach((slug: string) => {
+          const choice = opt.options?.find((o) => o.value === slug);
+          if (choice && choice.price) {
+            subtotal += choice.price;
+            items.push({ label: choice.label, amount: choice.price });
           }
-         });
-       }
+        });
+      } else if ((opt.type === "select" || opt.type === "radio") && opt.options) {
+        // Skip frequency option as it's handled in recurring logic
+        if (opt.id === pricingConfig.recurring?.frequencyOptionId) return;
 
-       const discountRounded = round2(discount);
-       const taxable = Math.max(0, subtotal - discountRounded);
-       const vat = round2(taxable * VAT_RATE);
-       const total = round2(taxable + vat);
+        const choice = opt.options.find((o) => o.value === val);
+        if (choice && choice.price) {
+          subtotal += choice.price;
+          items.push({ label: choice.label, amount: choice.price });
+        }
+      }
+    });
 
-       const finalItems = [...items];
-       if (discountRounded > 0) {
-         finalItems.push({ label: discountLabel || "Discount", amount: -discountRounded });
-       }
-       finalItems.push({ label: `VAT (${Math.round(VAT_RATE * 100)}%)`, amount: vat });
+    // 3. Handle Recurring Discounts
+    if (pricingConfig.recurring?.enabled && pricingConfig.recurring.frequencyOptionId) {
+      const frequencyValue = String(formData.serviceOptions[pricingConfig.recurring.frequencyOptionId] || "one-time");
+      const freqOption = pricingConfig.recurring.options.find((o) => o.value === frequencyValue);
 
-       return { subtotal: round2(subtotal), discount: discountRounded, vat, total, items: finalItems };
+      if (freqOption) {
+        const visitsPerMonth = freqOption.visitsPerMonth || 1;
+        if (visitsPerMonth > 1) {
+          // Multiply subtotal by visits for a monthly estimate
+          const monthlySubtotal = subtotal * visitsPerMonth;
+          const monthlyDiscount = (monthlySubtotal * (freqOption.discountPercent || 0)) / 100;
+
+          // Update items for monthly view
+          items.forEach((item) => {
+            item.label = `${item.label} (x${visitsPerMonth} visits/mo)`;
+            item.amount *= visitsPerMonth;
+          });
+
+          subtotal = monthlySubtotal;
+          discount = monthlyDiscount;
+          if (discount > 0) {
+            discountLabel = `${freqOption.label} Discount (${freqOption.discountPercent}%)`;
+          }
+        }
+      }
+    }
+
+    const discountRounded = round2(discount);
+    const taxable = Math.max(0, subtotal - discountRounded);
+    const vat = round2(taxable * VAT_RATE);
+    const total = round2(taxable + vat);
+
+    const finalItems = [...items];
+    if (discountRounded > 0) {
+      finalItems.push({ label: discountLabel || "Discount", amount: -discountRounded });
+    }
+    finalItems.push({ label: `VAT (${Math.round(VAT_RATE * 100)}%)`, amount: vat });
+
+    return { subtotal: round2(subtotal), discount: discountRounded, vat, total, items: finalItems };
   };
 
-  const { total, items: lineItems, subtotal, discount, vat } = calculateBreakdown();
+  const localBreakdown = calculateBreakdown();
+  const subtotal = serviceQuote?.pricing.subtotal ?? localBreakdown.subtotal;
+  const discount = serviceQuote?.pricing.discount ?? localBreakdown.discount;
+  const vat = serviceQuote?.pricing.vat ?? localBreakdown.vat;
+  const total = serviceQuote?.pricing.total ?? localBreakdown.total;
+  const lineItems = serviceQuote?.pricing.lineItems ?? localBreakdown.items;
   const maidFrequency = String(formData.serviceOptions["frequency"] || "one-time");
   const isMaidRecurring =
     service.id === "maid-cleaning" && maidFrequency !== "one-time";
@@ -343,8 +313,10 @@ export function BookingStepper({ service }: BookingStepperProps) {
   const hasPinnedCoords =
     Number.isFinite(Number(formData.address.lat)) && Number.isFinite(Number(formData.address.lng));
 
-  const buildMapLink = (lat: string, lng: string) =>
-    `https://www.google.com/maps?q=${lat},${lng}`;
+  const buildMapLink = useCallback(
+    (lat: string, lng: string) => `https://www.google.com/maps?q=${lat},${lng}`,
+    [],
+  );
 
   const parseCoordsFromMapLink = (value: string) => {
     if (!value) return null;
@@ -359,7 +331,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
     return null;
   };
 
-  const reverseGeocodeAndFillAddress = async (latRaw: string, lngRaw: string) => {
+  const reverseGeocodeAndFillAddress = useCallback(async (latRaw: string, lngRaw: string) => {
     const lat = Number(latRaw).toFixed(6);
     const lng = Number(lngRaw).toFixed(6);
     const mapLink = buildMapLink(lat, lng);
@@ -403,7 +375,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
         lng,
       },
     }));
-  };
+  }, [buildMapLink]);
 
   useEffect(() => {
     const existing = document.getElementById("leaflet-css");
@@ -513,6 +485,37 @@ export function BookingStepper({ service }: BookingStepperProps) {
     };
   }, []);
 
+  useEffect(() => {
+    let isActive = true;
+    setIsQuoteLoading(true);
+    setQuoteError("");
+
+    const timeoutId = window.setTimeout(() => {
+      void fetchServiceQuote(service.slug, formData.serviceOptions)
+        .then((quote) => {
+          if (isActive) {
+            setServiceQuote(quote);
+          }
+        })
+        .catch(() => {
+          if (isActive) {
+            setServiceQuote(null);
+            setQuoteError("Live price check is unavailable. Showing local estimate.");
+          }
+        })
+        .finally(() => {
+          if (isActive) {
+            setIsQuoteLoading(false);
+          }
+        });
+    }, 250);
+
+    return () => {
+      isActive = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [formData.serviceOptions, service.slug]);
+
   const redirectToLogin = () => {
     if (typeof window === "undefined") {
       return;
@@ -573,7 +576,13 @@ export function BookingStepper({ service }: BookingStepperProps) {
       leafletMapRef.current = null;
       leafletPinRef.current = null;
     };
-  }, [isLeafletReady, currentStep]);
+  }, [
+    currentStep,
+    formData.address.lat,
+    formData.address.lng,
+    isLeafletReady,
+    reverseGeocodeAndFillAddress,
+  ]);
 
   useEffect(() => {
     const map = leafletMapRef.current;
@@ -983,6 +992,12 @@ export function BookingStepper({ service }: BookingStepperProps) {
                      <span className="text-lg font-medium text-slate-300">AED</span>
                   </div>
                   <p className="text-xs text-slate-500 mt-1">{estimateNote}</p>
+                  {isQuoteLoading && (
+                    <p className="text-xs text-slate-400 mt-1">Checking live price...</p>
+                  )}
+                  {quoteError && !isQuoteLoading && (
+                    <p className="text-xs text-amber-300 mt-1">{quoteError}</p>
+                  )}
               </div>
              
              {/* Mini Breakdown for clarity */}
@@ -1539,6 +1554,15 @@ export function BookingStepper({ service }: BookingStepperProps) {
         <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 ring-1 ring-gray-100 overflow-hidden">
             <div className="bg-[#0D0D1A] p-6 text-white text-center relative overflow-hidden">
                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B4D8] rounded-full blur-3xl opacity-20 -mr-10 -mt-10" />
+                 {service.imageUrl && (
+                   <div className="relative z-10 mb-4 h-24 w-24 mx-auto overflow-hidden rounded-2xl border-2 border-white/10 shadow-xl">
+                     <img
+                       src={service.imageUrl}
+                       alt={service.title}
+                       className="h-full w-full object-cover"
+                     />
+                   </div>
+                 )}
                  <h3 className="text-lg font-bold relative z-10">Booking Summary</h3>
                  <p className="text-xs text-gray-400 relative z-10 mt-1 uppercase tracking-widest">{service.title}</p>
             </div>

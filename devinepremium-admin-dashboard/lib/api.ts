@@ -5,7 +5,7 @@ import {
   type ApiRequestOptions,
 } from "@devinepremium/shared";
 
-const API_BASE_URL = resolveApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL);
+const API_BASE_URL = resolveApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000");
 
 export { ApiRequestError };
 

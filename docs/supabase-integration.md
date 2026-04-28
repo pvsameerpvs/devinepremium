@@ -202,11 +202,21 @@ DB_SYNCHRONIZE=false
 The current backend-owned tables are:
 
 - `users`
+- `services`
 - `bookings`
 - `payments`
 - `booking_status_history`
 - `saved_addresses`
 - `staff_members`
+
+If your DB was already cleaned before the service dashboard feature, run:
+
+```sql
+-- docs/supabase-services-catalog-migration.sql
+```
+
+Then restart the backend. The backend seeds the current service catalog into
+`public.services` when the table is empty.
 
 ## Troubleshooting
 

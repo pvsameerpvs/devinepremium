@@ -1,6 +1,6 @@
 "use client";
 
-import { SERVICES } from "@/lib/services";
+import { fetchActiveServices, fetchCategories, type Service, type ServiceCategory } from "@/lib/services";
 import {
   Card,
   CardContent,
@@ -10,10 +10,29 @@ import {
 } from "@/components/ui/card";
 import { ChevronRight, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { getStoredUserSession } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 
 export function ServicesSection() {
   const router = useRouter();
+  const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<ServiceCategory[]>([]);
+  const [activeCategoryId, setActiveCategoryId] = useState<string>("all");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCategories().then(setCategories);
+  }, []);
+
+  useEffect(() => {
+    setIsLoading(true);
+    const categoryParam = activeCategoryId === "all" ? undefined : activeCategoryId;
+    fetchActiveServices(categoryParam).then((data) => {
+      setServices(data);
+      setIsLoading(false);
+    });
+  }, [activeCategoryId]);
 
   function handleServiceClick(slug: string) {
     const session = getStoredUserSession();
@@ -26,18 +45,52 @@ export function ServicesSection() {
 
   return (
     <main id="services" className="container mx-auto px-4 py-14 md:py-20">
-      <div className="max-w-2xl">
-        <p className="text-xs font-bold tracking-[0.2em] uppercase text-primary">Services</p>
-        <h2 className="mt-3 text-3xl md:text-5xl font-black tracking-tight">
-          Book a service in minutes.
-        </h2>
-        <p className="mt-4 text-muted-foreground">
-          Transparent pricing, clear add-ons, and fast scheduling.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+        <div className="max-w-2xl">
+          <p className="text-xs font-bold tracking-[0.2em] uppercase text-primary">Services</p>
+          <h2 className="mt-3 text-3xl md:text-5xl font-black tracking-tight">
+            Book a service in minutes.
+          </h2>
+          <p className="mt-4 text-muted-foreground">
+            Transparent pricing, clear add-ons, and fast scheduling.
+          </p>
+        </div>
       </div>
 
-      <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {SERVICES.map((service) => (
+      {/* Category Tabs */}
+      <div className="mt-10 flex flex-wrap gap-2">
+        <button
+          onClick={() => setActiveCategoryId("all")}
+          className={cn(
+            "px-5 py-2.5 rounded-full text-sm font-medium transition-all border",
+            activeCategoryId === "all"
+              ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
+              : "bg-background hover:bg-muted text-muted-foreground border-border"
+          )}
+        >
+          All Services
+        </button>
+        {categories.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => setActiveCategoryId(cat.id)}
+            className={cn(
+              "px-5 py-2.5 rounded-full text-sm font-medium transition-all border",
+              activeCategoryId === cat.id
+                ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
+                : "bg-background hover:bg-muted text-muted-foreground border-border"
+            )}
+          >
+            {cat.title}
+          </button>
+        ))}
+      </div>
+
+      <div className={cn(
+        "mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 transition-opacity duration-300",
+        isLoading ? "opacity-50" : "opacity-100"
+      )}>
+        {services.map((service) => (
           <button 
             key={service.id} 
             type="button"
@@ -45,6 +98,16 @@ export function ServicesSection() {
             className="group block text-left w-full h-full"
           >
             <Card className="h-full rounded-3xl border-border bg-card dp-card-hover overflow-hidden">
+              {service.imageUrl && (
+                <div className="relative h-48 w-full overflow-hidden">
+                  <img
+                    src={service.imageUrl}
+                    alt={service.title}
+                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                </div>
+              )}
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
