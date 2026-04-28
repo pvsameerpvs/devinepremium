@@ -1,13 +1,13 @@
 "use client";
 
-import { Controller } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import type { StepFormProps } from "./bookingTypes";
+import type { BookingFormValues } from "./bookingTypes";
 
-interface ContactStepProps extends StepFormProps {
+interface ContactStepProps {
   accountEmail: string;
   paymentMethod: string;
 }
@@ -22,11 +22,14 @@ function FieldError({ message }: { message?: string }) {
 
 export function ContactStep({
   accountEmail,
-  control,
-  errors,
   paymentMethod,
-  register,
 }: ContactStepProps) {
+  const {
+    control,
+    formState: { errors },
+    register,
+  } = useFormContext<BookingFormValues>();
+
   return (
     <div className="grid gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
       <div className="grid gap-2">

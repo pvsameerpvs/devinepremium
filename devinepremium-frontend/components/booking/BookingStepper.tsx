@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Script from "next/script";
 import { format } from "date-fns";
-import { useForm, useWatch, type FieldPath } from "react-hook-form";
+import { FormProvider, useForm, useWatch, type FieldPath } from "react-hook-form";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type CustomerAccountResponse, type SavedAddressRecord } from "@/lib/account";
 import { apiRequest } from "@/lib/api";
@@ -71,19 +71,19 @@ export function BookingStepper({ service }: BookingStepperProps) {
     () => createDefaultBookingValues(service),
     [service],
   );
-  const {
-    control,
-    formState: { errors },
-    getValues,
-    register,
-    reset,
-    setValue,
-    trigger,
-  } = useForm<BookingFormValues>({
+  const form = useForm<BookingFormValues>({
     defaultValues,
     mode: "onTouched",
     shouldUnregister: false,
   });
+  const {
+    control,
+    getValues,
+    handleSubmit,
+    reset,
+    setValue,
+    trigger,
+  } = form;
 
   const formValues = useWatch({ control }) as BookingFormValues;
   const serviceOptions = formValues.serviceOptions ?? defaultValues.serviceOptions;
@@ -93,6 +93,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [bookingError, setBookingError] = useState("");
+  const [serviceDetailsError, setServiceDetailsError] = useState("");
   const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
   const [accountEmail, setAccountEmail] = useState("");
   const [savedAddresses, setSavedAddresses] = useState<SavedAddressRecord[]>([]);
@@ -120,8 +121,16 @@ export function BookingStepper({ service }: BookingStepperProps) {
     () => calculateBookingBreakdown(service, serviceOptions),
     [service, serviceOptions],
   );
-  const pricing = serviceQuote?.pricing ?? localBreakdown;
-  const lineItems = serviceQuote?.pricing.lineItems ?? localBreakdown.items;
+  const livePricing = serviceQuote?.pricing;
+  const hasEmptyLivePricing =
+    livePricing && livePricing.total <= 0 && localBreakdown.total > 0;
+  const shouldUseLocalPricing = isQuoteLoading || Boolean(hasEmptyLivePricing);
+  const pricing = shouldUseLocalPricing
+    ? localBreakdown
+    : livePricing ?? localBreakdown;
+  const lineItems = shouldUseLocalPricing
+    ? localBreakdown.items
+    : livePricing?.lineItems ?? localBreakdown.items;
   const { estimateLabel, estimateNote } = getEstimateCopy(service, serviceOptions);
   const addressSummary = getAddressSummary(address);
   const hasPinnedCoords =
@@ -130,6 +139,12 @@ export function BookingStepper({ service }: BookingStepperProps) {
   useEffect(() => {
     reset(defaultValues);
   }, [defaultValues, reset]);
+
+  useEffect(() => {
+    if (pricing.total > 0) {
+      setServiceDetailsError("");
+    }
+  }, [pricing.total]);
 
   const setAddressValue = useCallback(
     (field: keyof BookingFormValues["address"], value: string) => {
@@ -150,30 +165,6 @@ export function BookingStepper({ service }: BookingStepperProps) {
     },
     [setValue],
   );
-
-  function updateServiceOption(key: string, value: unknown) {
-    setValue(
-      "serviceOptions",
-      { ...getValues("serviceOptions"), [key]: value },
-      { shouldDirty: true, shouldValidate: true },
-    );
-  }
-
-  function updateCheckboxOption(
-    key: string,
-    value: string,
-    isChecked: boolean,
-  ) {
-    const currentValue = getValues("serviceOptions")[key];
-    const current = Array.isArray(currentValue)
-      ? currentValue.map(String)
-      : [];
-    const nextValues = isChecked
-      ? Array.from(new Set([...current, value]))
-      : current.filter((selectedValue) => selectedValue !== value);
-
-    updateServiceOption(key, nextValues);
-  }
 
   const applySavedAddress = useCallback(
     (
@@ -539,6 +530,13 @@ export function BookingStepper({ service }: BookingStepperProps) {
   }
 
   async function validateCurrentStep() {
+    if (currentStep === 0 && service.pricingMode !== "quote" && pricing.total <= 0) {
+      setServiceDetailsError(
+        "Please select at least one priced service option before continuing.",
+      );
+      return false;
+    }
+
     const fields = VALIDATION_FIELDS[currentStep];
     return fields.length ? trigger(fields, { shouldFocus: true }) : true;
   }
@@ -549,11 +547,10 @@ export function BookingStepper({ service }: BookingStepperProps) {
       return;
     }
 
-    if (currentStep < BOOKING_STEPS.length - 1) {
-      setCurrentStep((step) => step + 1);
-      return;
-    }
+    setCurrentStep((step) => Math.min(step + 1, BOOKING_STEPS.length - 1));
+  }
 
+  function handleReviewBooking() {
     const session = getStoredUserSession();
     if (!session?.token) {
       redirectToLogin();
@@ -562,6 +559,17 @@ export function BookingStepper({ service }: BookingStepperProps) {
 
     setBookingError("");
     setIsModalOpen(true);
+  }
+
+  async function handleStepperSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (currentStep < BOOKING_STEPS.length - 1) {
+      await handleNext();
+      return;
+    }
+
+    await handleSubmit(handleReviewBooking)(event);
   }
 
   function handleBack() {
@@ -682,10 +690,8 @@ export function BookingStepper({ service }: BookingStepperProps) {
           lineItems={lineItems}
           quoteError={quoteError}
           service={service}
-          serviceOptions={serviceOptions}
+          serviceDetailsError={serviceDetailsError}
           total={pricing.total}
-          onCheckboxOptionChange={updateCheckboxOption}
-          onServiceOptionChange={updateServiceOption}
         />
       );
     }
@@ -694,8 +700,6 @@ export function BookingStepper({ service }: BookingStepperProps) {
       return (
         <AddressStep
           accountEmail={accountEmail}
-          control={control}
-          errors={errors}
           hasPinnedCoords={hasPinnedCoords}
           isLoadingAccountData={isLoadingAccountData}
           isLocating={isLocating}
@@ -705,7 +709,6 @@ export function BookingStepper({ service }: BookingStepperProps) {
           placeQuery={placeQuery}
           placeResults={placeResults}
           placeSearchError={placeSearchError}
-          register={register}
           saveAddressAsDefault={saveAddressAsDefault}
           saveAddressLabel={saveAddressLabel}
           saveCurrentAddress={saveCurrentAddress}
@@ -735,101 +738,102 @@ export function BookingStepper({ service }: BookingStepperProps) {
     }
 
     if (currentStep === 2) {
-      return <ScheduleStep control={control} errors={errors} register={register} />;
+      return <ScheduleStep />;
     }
 
     return (
       <ContactStep
         accountEmail={accountEmail}
-        control={control}
-        errors={errors}
         paymentMethod={paymentMethod}
-        register={register}
       />
     );
   }
 
   return (
-    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12 lg:gap-8">
-      <Script
-        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        strategy="afterInteractive"
-        onLoad={() => setIsLeafletReady(true)}
-      />
-
-      <div className="space-y-6 lg:col-span-8 lg:space-y-8">
-        <BookingProgress
-          currentStep={currentStep}
-          onStepClick={(stepIndex) => {
-            if (stepIndex < currentStep) {
-              setCurrentStep(stepIndex);
-            }
-          }}
+    <FormProvider {...form}>
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12 lg:gap-8">
+        <Script
+          src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          strategy="afterInteractive"
+          onLoad={() => setIsLeafletReady(true)}
         />
 
-        <Card className="min-h-[500px] overflow-hidden border-none shadow-xl shadow-gray-200/50 ring-1 ring-gray-100">
-          <CardHeader className="border-b border-gray-100 bg-gray-50/50 p-5 pb-6 sm:p-8 sm:pb-8">
-            <CardTitle className="flex items-center gap-2 text-xl font-bold sm:text-2xl">
-              {BOOKING_STEPS[currentStep].title}
-            </CardTitle>
-            <CardDescription className="mt-2 text-sm text-gray-500 sm:text-base">
-              {currentStep === 0 && (
-                <span className="mb-2 block">{service.description}</span>
-              )}
-              Please fill in all the required details below to proceed.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-5 sm:p-8">{renderCurrentStep()}</CardContent>
-          <CardFooter className="mt-auto flex justify-between gap-4 border-t border-gray-100 bg-gray-50 p-5 sm:p-6">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={handleBack}
-              disabled={currentStep === 0}
-              className="-ml-2 px-2 text-xs text-gray-500 hover:bg-gray-200/50 hover:text-gray-900 sm:-ml-2 sm:px-4 sm:text-sm"
-            >
-              <ChevronLeft className="mr-1 h-4 w-4 sm:mr-2" />
-              Back
-            </Button>
-            <Button
-              type="button"
-              onClick={handleNext}
-              size="lg"
-              className={`h-10 rounded-full border-0 px-4 text-xs text-white shadow-lg transition-transform hover:scale-105 active:scale-95 sm:h-11 sm:px-8 sm:text-sm ${
-                currentStep === BOOKING_STEPS.length - 1
-                  ? "bg-[#7B2D8B] hover:bg-[#6a2578]"
-                  : "bg-[#00B4D8] hover:bg-[#009bb8]"
-              }`}
-            >
-              {currentStep === BOOKING_STEPS.length - 1 ? "Confirm" : "Continue"}
-              {currentStep !== BOOKING_STEPS.length - 1 && (
-                <ChevronRight className="ml-1 h-4 w-4 sm:ml-2" />
-              )}
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
+        <form
+          className="space-y-6 lg:col-span-8 lg:space-y-8"
+          onSubmit={handleStepperSubmit}
+        >
+          <BookingProgress
+            currentStep={currentStep}
+            onStepClick={(stepIndex) => {
+              if (stepIndex < currentStep) {
+                setCurrentStep(stepIndex);
+              }
+            }}
+          />
 
-      <BookingSummary
-        estimateLabel={estimateLabel}
-        lineItems={lineItems}
-        service={service}
-        total={pricing.total}
-      />
+          <Card className="min-h-[500px] overflow-hidden border-none shadow-xl shadow-gray-200/50 ring-1 ring-gray-100">
+            <CardHeader className="border-b border-gray-100 bg-gray-50/50 p-5 pb-6 sm:p-8 sm:pb-8">
+              <CardTitle className="flex items-center gap-2 text-xl font-bold sm:text-2xl">
+                {BOOKING_STEPS[currentStep].title}
+              </CardTitle>
+              <CardDescription className="mt-2 text-sm text-gray-500 sm:text-base">
+                {currentStep === 0 && (
+                  <span className="mb-2 block">{service.description}</span>
+                )}
+                Please fill in all the required details below to proceed.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-5 sm:p-8">{renderCurrentStep()}</CardContent>
+            <CardFooter className="mt-auto flex justify-between gap-4 border-t border-gray-100 bg-gray-50 p-5 sm:p-6">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleBack}
+                disabled={currentStep === 0}
+                className="-ml-2 px-2 text-xs text-gray-500 hover:bg-gray-200/50 hover:text-gray-900 sm:-ml-2 sm:px-4 sm:text-sm"
+              >
+                <ChevronLeft className="mr-1 h-4 w-4 sm:mr-2" />
+                Back
+              </Button>
+              <Button
+                type="submit"
+                size="lg"
+                className={`h-10 rounded-full border-0 px-4 text-xs text-white shadow-lg transition-transform hover:scale-105 active:scale-95 sm:h-11 sm:px-8 sm:text-sm ${
+                  currentStep === BOOKING_STEPS.length - 1
+                    ? "bg-[#7B2D8B] hover:bg-[#6a2578]"
+                    : "bg-[#00B4D8] hover:bg-[#009bb8]"
+                }`}
+              >
+                {currentStep === BOOKING_STEPS.length - 1 ? "Confirm" : "Continue"}
+                {currentStep !== BOOKING_STEPS.length - 1 && (
+                  <ChevronRight className="ml-1 h-4 w-4 sm:ml-2" />
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+        </form>
 
-      {isModalOpen && (
-        <ConfirmationModal
-          addressSummary={addressSummary}
-          bookingError={bookingError}
+        <BookingSummary
           estimateLabel={estimateLabel}
-          formValues={getValues()}
-          isSubmittingBooking={isSubmittingBooking}
+          lineItems={lineItems}
           service={service}
           total={pricing.total}
-          onCancel={() => setIsModalOpen(false)}
-          onConfirm={handleCreateBooking}
         />
-      )}
-    </div>
+
+        {isModalOpen && (
+          <ConfirmationModal
+            addressSummary={addressSummary}
+            bookingError={bookingError}
+            estimateLabel={estimateLabel}
+            formValues={getValues()}
+            isSubmittingBooking={isSubmittingBooking}
+            service={service}
+            total={pricing.total}
+            onCancel={() => setIsModalOpen(false)}
+            onConfirm={handleCreateBooking}
+          />
+        )}
+      </div>
+    </FormProvider>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Controller } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { CUSTOMER_TIME_SLOTS } from "@/lib/booking";
@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { StepFormProps } from "./bookingTypes";
+import type { BookingFormValues } from "./bookingTypes";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) {
@@ -30,7 +30,12 @@ function FieldError({ message }: { message?: string }) {
   return <p className="text-sm text-red-600">{message}</p>;
 }
 
-export function ScheduleStep({ control, errors }: StepFormProps) {
+export function ScheduleStep() {
+  const {
+    control,
+    formState: { errors },
+  } = useFormContext<BookingFormValues>();
+
   return (
     <div className="flex flex-col space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
       <div className="flex flex-col space-y-3">

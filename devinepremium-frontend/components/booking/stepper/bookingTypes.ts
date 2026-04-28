@@ -1,5 +1,4 @@
 import type { RefObject } from "react";
-import type { Control, FieldErrors, UseFormRegister } from "react-hook-form";
 import type { SavedAddressRecord } from "@/lib/account";
 
 export type BookingStepId = "service" | "address" | "schedule" | "contact";
@@ -61,13 +60,7 @@ export interface PricingBreakdown {
   items: PricingLineItem[];
 }
 
-export interface StepFormProps {
-  control: Control<BookingFormValues>;
-  errors: FieldErrors<BookingFormValues>;
-  register: UseFormRegister<BookingFormValues>;
-}
-
-export interface AddressStepProps extends StepFormProps {
+export interface AddressStepProps {
   accountEmail: string;
   hasPinnedCoords: boolean;
   isLoadingAccountData: boolean;

@@ -6,6 +6,16 @@ export function calculateBookingBreakdown(
   service: Service,
   serviceOptions: Record<string, unknown>,
 ): PricingBreakdown {
+  const selectedOptions = service.options.reduce<Record<string, unknown>>(
+    (acc, option) => {
+      if (option.defaultValue !== undefined && acc[option.id] === undefined) {
+        acc[option.id] = option.defaultValue;
+      }
+
+      return acc;
+    },
+    { ...serviceOptions },
+  );
   let subtotal = 0;
   let discount = 0;
   let discountLabel: string | null = null;
@@ -16,9 +26,9 @@ export function calculateBookingBreakdown(
 
   if (pricingMode === "hourly" && pricingConfig.hourly) {
     const hours =
-      Number(serviceOptions[pricingConfig.hourly.hoursOptionId]) || 0;
+      Number(selectedOptions[pricingConfig.hourly.hoursOptionId]) || 0;
     const crew = pricingConfig.hourly.staffCountOptionId
-      ? Number(serviceOptions[pricingConfig.hourly.staffCountOptionId]) || 1
+      ? Number(selectedOptions[pricingConfig.hourly.staffCountOptionId]) || 1
       : 1;
     const rate = pricingConfig.hourly.rate || service.basePrice || 0;
 
@@ -40,7 +50,7 @@ export function calculateBookingBreakdown(
   }
 
   service.options.forEach((option) => {
-    const value = serviceOptions[option.id];
+    const value = selectedOptions[option.id];
     if (!value) {
       return;
     }
@@ -81,7 +91,7 @@ export function calculateBookingBreakdown(
 
   if (pricingConfig.recurring?.enabled && pricingConfig.recurring.frequencyOptionId) {
     const frequencyValue = String(
-      serviceOptions[pricingConfig.recurring.frequencyOptionId] || "one-time",
+      selectedOptions[pricingConfig.recurring.frequencyOptionId] || "one-time",
     );
     const frequencyOption = pricingConfig.recurring.options.find(
       (option) => option.value === frequencyValue,

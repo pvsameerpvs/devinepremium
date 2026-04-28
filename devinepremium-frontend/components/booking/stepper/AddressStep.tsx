@@ -1,6 +1,6 @@
 "use client";
 
-import { Controller } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import { MapPin } from "lucide-react";
 import { type SavedAddressRecord } from "@/lib/account";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { AddressStepProps } from "./bookingTypes";
+import type { AddressStepProps, BookingFormValues } from "./bookingTypes";
 import { formatAddressLine } from "./bookingUtils";
 
 function FieldError({ message }: { message?: string }) {
@@ -66,8 +66,6 @@ function SavedAddressCard({
 
 export function AddressStep({
   accountEmail,
-  control,
-  errors,
   hasPinnedCoords,
   isLoadingAccountData,
   isLocating,
@@ -87,13 +85,18 @@ export function AddressStep({
   placeQuery,
   placeResults,
   placeSearchError,
-  register,
   saveAddressAsDefault,
   saveAddressLabel,
   saveCurrentAddress,
   savedAddresses,
   selectedSavedAddressId,
 }: AddressStepProps) {
+  const {
+    control,
+    formState: { errors },
+    register,
+  } = useFormContext<BookingFormValues>();
+
   return (
     <div className="grid gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
       {savedAddresses.length > 0 && (

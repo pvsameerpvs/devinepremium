@@ -100,12 +100,15 @@ export function getAddressSummary(address: BookingFormValues["address"]) {
 }
 
 export function getEstimateCopy(service: Service, serviceOptions: Record<string, unknown>) {
-  const frequency = String(serviceOptions.frequency || "one-time");
-  const isMaidRecurring = service.id === "maid-cleaning" && frequency !== "one-time";
+  const frequencyOptionId =
+    service.pricingConfig?.recurring?.frequencyOptionId ?? "frequency";
+  const frequency = String(serviceOptions[frequencyOptionId] || "one-time");
+  const isRecurring =
+    Boolean(service.pricingConfig?.recurring?.enabled) && frequency !== "one-time";
 
   return {
-    estimateLabel: isMaidRecurring ? "Estimated Monthly Total" : "Estimated Total",
-    estimateNote: isMaidRecurring
+    estimateLabel: isRecurring ? "Estimated Monthly Total" : "Estimated Total",
+    estimateNote: isRecurring
       ? "Includes recurring frequency pricing for approx. 4 weeks + 5% VAT"
       : "Includes selected options + 5% VAT",
   };

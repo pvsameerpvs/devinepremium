@@ -1,5 +1,6 @@
 "use client";
 
+import { useFormContext, useWatch } from "react-hook-form";
 import { Check, Minus, Plus } from "lucide-react";
 import type { Service } from "@/lib/services";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { PricingLineItem } from "./bookingTypes";
+import type { BookingFormValues, PricingLineItem } from "./bookingTypes";
 import { formatAED } from "./bookingUtils";
 
 interface ServiceOptionsStepProps {
@@ -24,14 +25,8 @@ interface ServiceOptionsStepProps {
   lineItems: PricingLineItem[];
   quoteError: string;
   service: Service;
-  serviceOptions: Record<string, unknown>;
+  serviceDetailsError: string;
   total: number;
-  onCheckboxOptionChange: (
-    key: string,
-    value: string,
-    isChecked: boolean,
-  ) => void;
-  onServiceOptionChange: (key: string, value: unknown) => void;
 }
 
 export function ServiceOptionsStep({
@@ -41,11 +36,37 @@ export function ServiceOptionsStep({
   lineItems,
   quoteError,
   service,
-  serviceOptions,
+  serviceDetailsError,
   total,
-  onCheckboxOptionChange,
-  onServiceOptionChange,
 }: ServiceOptionsStepProps) {
+  const { control, getValues, setValue } = useFormContext<BookingFormValues>();
+  const serviceOptions =
+    useWatch({ control, name: "serviceOptions" }) ?? {};
+
+  function updateServiceOption(key: string, value: unknown) {
+    setValue(
+      "serviceOptions",
+      { ...(getValues("serviceOptions") ?? {}), [key]: value },
+      { shouldDirty: true, shouldValidate: true },
+    );
+  }
+
+  function updateCheckboxOption(
+    key: string,
+    value: string,
+    isChecked: boolean,
+  ) {
+    const currentValue = getValues("serviceOptions")[key];
+    const current = Array.isArray(currentValue)
+      ? currentValue.map(String)
+      : [];
+    const nextValues = isChecked
+      ? Array.from(new Set([...current, value]))
+      : current.filter((selectedValue) => selectedValue !== value);
+
+    updateServiceOption(key, nextValues);
+  }
+
   function getCheckboxOptionValues(key: string) {
     const value = serviceOptions[key];
     return Array.isArray(value) ? value.map(String) : [];
@@ -69,7 +90,7 @@ export function ServiceOptionsStep({
 
             {option.type === "radio" && option.options && (
               <RadioGroup
-                onValueChange={(value) => onServiceOptionChange(option.id, value)}
+                onValueChange={(value) => updateServiceOption(option.id, value)}
                 value={String(serviceOptions[option.id] ?? option.defaultValue ?? "")}
                 className="grid grid-cols-1 gap-4 sm:grid-cols-2"
               >
@@ -118,7 +139,7 @@ export function ServiceOptionsStep({
             {option.type === "select" && option.options && (
               <>
                 <Select
-                  onValueChange={(value) => onServiceOptionChange(option.id, value)}
+                  onValueChange={(value) => updateServiceOption(option.id, value)}
                   value={String(serviceOptions[option.id] ?? option.defaultValue ?? "")}
                 >
                   <SelectTrigger className="h-12 rounded-xl border-gray-300 focus:ring-[#00B4D8]">
@@ -166,7 +187,7 @@ export function ServiceOptionsStep({
                       );
                       const minValue = option.min ?? 0;
                       if (current > minValue) {
-                        onServiceOptionChange(option.id, current - 1);
+                        updateServiceOption(option.id, current - 1);
                       }
                     }}
                   >
@@ -189,7 +210,7 @@ export function ServiceOptionsStep({
                       const current = Number(
                         serviceOptions[option.id] ?? option.defaultValue ?? 0,
                       );
-                      onServiceOptionChange(option.id, current + 1);
+                      updateServiceOption(option.id, current + 1);
                     }}
                   >
                     <Plus className="h-4 w-4" />
@@ -225,7 +246,7 @@ export function ServiceOptionsStep({
                         checked={isChecked}
                         className="data-[state=checked]:border-[#00B4D8] data-[state=checked]:bg-[#00B4D8]"
                         onCheckedChange={(checked) =>
-                          onCheckboxOptionChange(
+                          updateCheckboxOption(
                             option.id,
                             choice.value,
                             checked === true,
@@ -271,6 +292,11 @@ export function ServiceOptionsStep({
           )}
           {quoteError && !isQuoteLoading && (
             <p className="mt-1 text-xs text-amber-300">{quoteError}</p>
+          )}
+          {serviceDetailsError && (
+            <p className="mt-2 text-sm font-medium text-red-300">
+              {serviceDetailsError}
+            </p>
           )}
         </div>
 
