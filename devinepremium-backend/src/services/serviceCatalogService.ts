@@ -53,7 +53,7 @@ function toNumber(value: unknown, fallback = 0) {
 }
 
 function optionChoiceLabel(option: ServiceOption, value: string) {
-  return option.options?.find((choice) => choice.value === value)?.label ?? value;
+  return findOptionChoice(option, value)?.label ?? value;
 }
 
 function normalizeOptions(options?: ServiceOption[]) {
@@ -64,6 +64,44 @@ function normalizeExpectations(expectations?: string[]) {
   return Array.isArray(expectations)
     ? expectations.map((item) => item.trim()).filter(Boolean)
     : [];
+}
+
+function createUniqueOptionValue(
+  value: string,
+  counts: Map<string, number>,
+  usedValues: Set<string>,
+) {
+  const baseValue = value.trim() || "option";
+  let count = (counts.get(baseValue) ?? 0) + 1;
+  let uniqueValue = count === 1 ? baseValue : `${baseValue}-${count}`;
+
+  while (usedValues.has(uniqueValue)) {
+    count += 1;
+    uniqueValue = `${baseValue}-${count}`;
+  }
+
+  counts.set(baseValue, count);
+  usedValues.add(uniqueValue);
+  return uniqueValue;
+}
+
+function getClientChoiceValues(option: ServiceOption) {
+  const counts = new Map<string, number>();
+  const usedValues = new Set<string>();
+
+  return (option.options ?? []).map((choice) =>
+    createUniqueOptionValue(choice.value, counts, usedValues),
+  );
+}
+
+function findOptionChoice(option: ServiceOption, selectedValue: string) {
+  const choices = option.options ?? [];
+  const clientValues = getClientChoiceValues(option);
+
+  return choices.find(
+    (choice, index) =>
+      clientValues[index] === selectedValue || choice.value === selectedValue,
+  );
 }
 
 function createServiceSnapshot(service: ServiceCatalog): ServiceSnapshot {
@@ -139,7 +177,7 @@ function calculateHourlyService(
     }
 
     for (const selected of value) {
-      const choice = option.options?.find((item) => item.value === selected);
+      const choice = findOptionChoice(option, String(selected));
       const price = choice?.price ?? 0;
       if (price > 0) {
         const addOnTotal = price * visitsPerMonth;
@@ -190,7 +228,7 @@ function calculateGenericService(
 
     if (option.type === "checkbox" && Array.isArray(value)) {
       for (const selected of value) {
-        const choice = option.options?.find((item) => item.value === selected);
+        const choice = findOptionChoice(option, String(selected));
         const price = choice?.price ?? 0;
         if (price > 0) {
           subtotal += price;
@@ -202,7 +240,7 @@ function calculateGenericService(
 
     if ((option.type === "select" || option.type === "radio") && value) {
       const selectedValue = String(value);
-      const choice = option.options?.find((item) => item.value === selectedValue);
+      const choice = findOptionChoice(option, selectedValue);
       const price = choice?.price ?? 0;
       if (price > 0) {
         subtotal += price;

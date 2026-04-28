@@ -74,12 +74,50 @@ export interface ServiceCategory {
   isActive: boolean;
 }
 
+function createUniqueOptionValue(
+  value: string,
+  counts: Map<string, number>,
+  usedValues: Set<string>,
+) {
+  const baseValue = value.trim() || "option";
+  let count = (counts.get(baseValue) ?? 0) + 1;
+  let uniqueValue = count === 1 ? baseValue : `${baseValue}-${count}`;
+
+  while (usedValues.has(uniqueValue)) {
+    count += 1;
+    uniqueValue = `${baseValue}-${count}`;
+  }
+
+  counts.set(baseValue, count);
+  usedValues.add(uniqueValue);
+  return uniqueValue;
+}
+
+function normalizeOptionChoices(options: ServiceOption[]) {
+  return options.map((option) => {
+    if (!option.options?.length) {
+      return option;
+    }
+
+    const counts = new Map<string, number>();
+    const usedValues = new Set<string>();
+
+    return {
+      ...option,
+      options: option.options.map((choice) => ({
+        ...choice,
+        value: createUniqueOptionValue(choice.value, counts, usedValues),
+      })),
+    };
+  });
+}
+
 function normalizeApiService(service: Service): Service {
   return {
     ...service,
     image: service.image || service.imageUrl || "/hero-cleaning.jpg",
     expectations: service.expectations ?? [],
-    options: service.options ?? [],
+    options: normalizeOptionChoices(service.options ?? []),
   };
 }
 

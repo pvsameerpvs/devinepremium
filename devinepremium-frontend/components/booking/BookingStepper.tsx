@@ -829,6 +829,31 @@ export function BookingStepper({ service }: BookingStepperProps) {
     }));
   };
 
+  const getCheckboxOptionValues = (key: string) => {
+    const value = formData.serviceOptions[key];
+    return Array.isArray(value) ? value.map(String) : [];
+  };
+
+  const updateCheckboxOption = (
+    key: string,
+    value: string,
+    isChecked: boolean,
+  ) => {
+    setFormData((prev: any) => {
+      const current = Array.isArray(prev.serviceOptions[key])
+        ? prev.serviceOptions[key].map(String)
+        : [];
+      const nextValues = isChecked
+        ? Array.from(new Set([...current, value]))
+        : current.filter((selectedValue: string) => selectedValue !== value);
+
+      return {
+        ...prev,
+        serviceOptions: { ...prev.serviceOptions, [key]: nextValues },
+      };
+    });
+  };
+
   const renderServiceStep = () => {
     return (
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -850,7 +875,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
                 {opt.options.map((o) => {
                    const isSelected = formData.serviceOptions[opt.id] === o.value;
                    return (
-                  <div key={o.value} className="relative">
+                  <div key={`${opt.id}-${o.value}`} className="relative">
                     <RadioGroupItem value={o.value} id={`${opt.id}-${o.value}`} className="peer sr-only" />
                     <Label
                       htmlFor={`${opt.id}-${o.value}`}
@@ -886,7 +911,7 @@ export function BookingStepper({ service }: BookingStepperProps) {
                   </SelectTrigger>
                   <SelectContent>
                     {opt.options.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
+                      <SelectItem key={`${opt.id}-${o.value}`} value={o.value}>
                         <span className="flex justify-between w-full gap-4">
                             <span>{o.label}</span>
                             {o.price && <span className="text-muted-foreground ml-auto"> {o.price} AED</span>}
@@ -947,36 +972,29 @@ export function BookingStepper({ service }: BookingStepperProps) {
             {opt.type === "checkbox" && opt.options && (
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                  {opt.options.map((o) => {
-                   const isChecked = formData.serviceOptions[opt.id]?.includes(o.value);
+                   const isChecked = getCheckboxOptionValues(opt.id).includes(o.value);
                    return (
-                   <div key={o.value} 
+                   <label key={`${opt.id}-${o.value}`}
                         className={cn(
                             "flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all",
                              isChecked ? "border-[#00B4D8] bg-[#00B4D8]/5" : "border-gray-100 bg-white hover:border-gray-200"
                         )}
-                        onClick={() => {
-                             const current = formData.serviceOptions[opt.id] || [];
-                             if (isChecked) {
-                                 updateServiceOption(opt.id, current.filter((x:any) => x !== o.value));
-                             } else {
-                                 updateServiceOption(opt.id, [...current, o.value]);
-                             }
-                        }}
                    >
                      <Checkbox 
                         id={`${opt.id}-${o.value}`}
                         checked={isChecked}
                         className="data-[state=checked]:bg-[#00B4D8] data-[state=checked]:border-[#00B4D8]"
-                        // Handling handled by parent div click for better UX
-                        onCheckedChange={() => {}} 
+                        onCheckedChange={(checked) =>
+                          updateCheckboxOption(opt.id, o.value, checked === true)
+                        }
                      />
                      <div className="ml-3 flex-1">
-                        <Label htmlFor={`${opt.id}-${o.value}`} className="cursor-pointer font-medium block">
-                        {o.label}
-                        </Label>
+                        <span className="block cursor-pointer font-medium">
+                          {o.label}
+                        </span>
                         {o.price && <p className="text-xs text-gray-500 mt-0.5">+ {o.price} AED</p>}
                      </div>
-                   </div>
+                   </label>
                  )})}
                </div>
             )}

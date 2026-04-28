@@ -60,6 +60,9 @@ export function slugifyService(value: string) {
 }
 
 function parsePriceLines(value: string): ServiceOptionChoice[] {
+  const valueCounts = new Map<string, number>();
+  const usedValues = new Set<string>();
+
   return value
     .split("\n")
     .map((line) => line.trim())
@@ -73,10 +76,29 @@ function parsePriceLines(value: string): ServiceOptionChoice[] {
 
       return {
         label: Number.isFinite(price) ? `${label} (${price} AED)` : label,
-        value: slugifyService(label),
+        value: createUniqueChoiceValue(slugifyService(label), valueCounts, usedValues),
         price: Number.isFinite(price) ? price : 0,
       };
     });
+}
+
+function createUniqueChoiceValue(
+  value: string,
+  counts: Map<string, number>,
+  usedValues: Set<string>,
+) {
+  const baseValue = value || "option";
+  let count = (counts.get(baseValue) ?? 0) + 1;
+  let uniqueValue = count === 1 ? baseValue : `${baseValue}-${count}`;
+
+  while (usedValues.has(uniqueValue)) {
+    count += 1;
+    uniqueValue = `${baseValue}-${count}`;
+  }
+
+  counts.set(baseValue, count);
+  usedValues.add(uniqueValue);
+  return uniqueValue;
 }
 
 function formatChoices(choices?: ServiceOptionChoice[]) {
