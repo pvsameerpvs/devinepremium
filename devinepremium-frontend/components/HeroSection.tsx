@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { getStoredUserSession } from "@/lib/auth";
 import { SERVICES } from "@/lib/services";
@@ -14,6 +15,28 @@ import {
   ChevronRight,
   Sparkles,
 } from "lucide-react";
+
+const SERVICE_IMAGE_FALLBACK = "/hero-cleaning.jpg";
+
+function formatServicePrice(service: (typeof SERVICES)[number]) {
+  if (service.basePrice > 0) {
+    if (service.priceUnit === "/hr") {
+      return `From ${service.basePrice} AED/hr + VAT`;
+    }
+
+    if (service.priceUnit === "starting from") {
+      return `From ${service.basePrice} AED + VAT`;
+    }
+
+    return `From ${service.basePrice} AED ${service.priceUnit || ""} + VAT`;
+  }
+
+  if (service.priceUnit === "based on selection" || service.priceUnit === "per sqm") {
+    return "Based on selection + VAT";
+  }
+
+  return "Get a Quote";
+}
 
 export function HeroSection() {
   const router = useRouter();
@@ -55,33 +78,36 @@ export function HeroSection() {
                 key={service.id} 
                 type="button" 
                 onClick={() => handleServiceClick(service.slug)}
-                className="group block text-left"
+                className="group block h-full w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <Card className="h-full rounded-3xl border-border bg-card dp-card-hover overflow-hidden">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <CardTitle className="text-xl group-hover:text-primary transition-colors">
+                  <div className="relative aspect-[16/10] overflow-hidden bg-muted">
+                    <Image
+                      src={service.image || SERVICE_IMAGE_FALLBACK}
+                      alt={`${service.title} service`}
+                      fill
+                      sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
+                    <div className="absolute left-4 right-4 bottom-4 flex items-end justify-between gap-3">
+                      <div className="min-w-0">
+                        <CardTitle className="text-xl leading-tight text-white drop-shadow-sm break-words">
                           {service.title}
                         </CardTitle>
-                        <CardDescription className="mt-1">
-                          {service.basePrice > 0
-                            ? service.priceUnit === "/hr"
-                              ? `From ${service.basePrice} AED/hr + VAT`
-                              : service.priceUnit === "starting from"
-                                ? `From ${service.basePrice} AED + VAT`
-                                : `From ${service.basePrice} AED ${service.priceUnit || ""} + VAT`
-                            : service.priceUnit === "based on selection" || service.priceUnit === "per sqm"
-                              ? "Based on selection + VAT"
-                              : "Get a Quote"}
-                        </CardDescription>
                       </div>
-                      <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-primary/15 to-secondary/15 border border-border flex items-center justify-center">
-                        <Sparkles className="h-5 w-5 text-primary" />
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/25 bg-white/90 text-primary shadow-sm backdrop-blur">
+                        <Sparkles className="h-5 w-5" />
                       </div>
                     </div>
+                  </div>
+
+                  <CardHeader className="pb-3">
+                    <CardDescription className="inline-flex w-fit rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                      {formatServicePrice(service)}
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-0">
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       {service.description ||
                         "Premium quality service delivered by trained professionals."}
