@@ -382,6 +382,7 @@ export const bookingService = {
       .createQueryBuilder("booking")
       .leftJoinAndSelect("booking.payments", "payment")
       .leftJoinAndSelect("booking.statusHistory", "statusHistory")
+      .leftJoinAndSelect("booking.assignedStaff", "assignedStaff")
       .where("booking.userId = :userId", { userId })
       .orderBy("booking.createdAt", "DESC")
       .addOrderBy("statusHistory.createdAt", "DESC")

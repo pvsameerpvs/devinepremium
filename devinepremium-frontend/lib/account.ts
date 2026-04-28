@@ -54,6 +54,13 @@ export interface BookingCustomerRequest {
   adminNote?: string | null;
 }
 
+export interface AssignedStaff {
+  id: string;
+  fullName: string;
+  phone: string | null;
+  profilePhotoUrl: string | null;
+}
+
 export interface BookingRecord {
   id: string;
   bookingReference: string;
@@ -81,6 +88,8 @@ export interface BookingRecord {
   statusHistory: BookingStatusHistory[];
   payments: PaymentRecord[];
   customerRequest?: BookingCustomerRequest | null;
+  assignedStaff?: AssignedStaff | null;
+  assignedAt?: string | null;
 }
 
 export interface BookingHistoryResponse {

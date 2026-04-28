@@ -133,7 +133,7 @@ export function OrderCard({
       {isExpanded && (
         <div className="grid gap-6 border-t border-slate-100 px-5 py-5 sm:px-6 sm:py-6 xl:grid-cols-[1.04fr_0.96fr] bg-slate-50/50 animate-in fade-in slide-in-from-top-2">
           <div className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
                 Booking summary
@@ -157,6 +157,45 @@ export function OrderCard({
                 <p>Time: {booking.schedule.timeSlot}</p>
               </div>
             </div>
+
+            {booking.assignedStaff && (
+              <div className="rounded-[24px] border border-cyan-100 bg-cyan-50/30 p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-600">
+                  Assigned team
+                </p>
+                <div className="mt-4 flex items-center gap-3">
+                  <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-white bg-white shadow-sm">
+                    {booking.assignedStaff.profilePhotoUrl ? (
+                      <img
+                        src={booking.assignedStaff.profilePhotoUrl}
+                        alt={booking.assignedStaff.fullName}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-cyan-100 text-cyan-600 font-bold text-sm">
+                        {booking.assignedStaff.fullName.charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-slate-900">
+                      {booking.assignedStaff.fullName}
+                    </p>
+                    {booking.assignedStaff.phone && (
+                      <a
+                        href={`tel:${booking.assignedStaff.phone}`}
+                        className="mt-0.5 block text-xs font-medium text-cyan-700 hover:underline"
+                      >
+                        {booking.assignedStaff.phone}
+                      </a>
+                    )}
+                  </div>
+                </div>
+                <p className="mt-3 text-[10px] font-medium uppercase tracking-wider text-cyan-600/70">
+                  Assigned on: {booking.assignedAt ? new Date(booking.assignedAt).toLocaleDateString() : 'N/A'}
+                </p>
+              </div>
+            )}
           </div>
 
           {booking.customerRequest && (
@@ -236,11 +275,12 @@ export function OrderCard({
               booking.statusHistory.map((entry: BookingStatusHistory) => (
                 <div key={entry.id} className="relative pl-6 before:absolute before:left-[11px] before:top-2 before:h-2 before:w-2 before:rounded-full before:bg-cyan-500 after:absolute after:bottom-[-20px] after:left-[14.5px] after:top-5 after:w-[1px] after:bg-slate-200 last:after:hidden">
                   <p className="font-medium text-sm text-slate-800">
-                    {entry.fromStatus ? `${toDisplayText(entry.fromStatus)} -> ` : ""}
-                    {toDisplayText(entry.toStatus)}
+                    {entry.fromStatus === entry.toStatus && entry.note?.includes("staff") 
+                      ? "Staff Assignment Update" 
+                      : (entry.fromStatus ? `${toDisplayText(entry.fromStatus)} -> ` : "") + toDisplayText(entry.toStatus)}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
-                    {new Date(entry.createdAt).toLocaleString()}
+                    {new Date(entry.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                   </p>
                   {entry.note && (
                     <p className="mt-2 text-xs text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100">
