@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { RefreshCcw, LayoutGrid, AlertCircle, History, Package } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import type { BookingRecord } from "@/lib/account";
 import type { UserSession } from "@/lib/auth";
 import { CUSTOMER_TIME_SLOTS } from "@/lib/booking";
-import { hasCustomerAction } from "./account-shared";
+import { hasCustomerAction, shellCardClass } from "./account-shared";
 import { OrdersSummary } from "./OrdersSummary";
 import { OrderCard } from "./OrderCard";
 
@@ -144,61 +145,74 @@ export function OrdersPanel({
   }
 
   return (
-    <section className="space-y-6">
-      <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 md:flex-row md:items-end md:justify-between bg-white p-6 rounded-[28px] shadow-sm">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#00B4D8]">
-            Orders
-          </p>
-          <h2 className="mt-3 text-2xl font-black text-slate-900 sm:text-3xl">
-            Booking history & actions
-          </h2>
-          <p className="mt-2 text-sm text-slate-600 block max-w-lg leading-relaxed">
-            See every booking in one place, easily check the next step, and 
-            manage your service times directly.
-          </p>
+    <section className="space-y-8">
+      {/* Header Section */}
+      <div className={`${shellCardClass} overflow-hidden`}>
+        <div className="border-b border-slate-100 bg-slate-50/50 px-6 py-8 sm:px-8">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-xl">
+              <span className="inline-flex items-center rounded-full bg-cyan-100 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-cyan-700 ring-1 ring-inset ring-cyan-700/10">
+                Service History
+              </span>
+              <h2 className="mt-4 text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
+                My Bookings
+              </h2>
+              <p className="mt-2 text-sm font-medium text-slate-500 leading-relaxed">
+                Track status updates, manage payments, and request schedule changes for your luxury services.
+              </p>
+            </div>
+            
+            <button
+              type="button"
+              onClick={() => void mutateBookings()}
+              className="group inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] shadow-sm"
+            >
+              <RefreshCcw className="h-4 w-4 text-cyan-600 transition-transform group-hover:rotate-180 duration-500" />
+              Refresh Data
+            </button>
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={() => void mutateBookings()}
-          className="rounded-full border border-[#00B4D8] text-[#00B4D8] px-5 py-2 text-sm font-semibold transition hover:bg-[#00B4D8] hover:text-white shadow-sm flex items-center justify-center min-w-[140px]"
-        >
-          Refresh orders
-        </button>
+
+        <div className="px-6 py-6 sm:px-8">
+          <OrdersSummary bookings={bookings} />
+        </div>
       </div>
 
-      <div className="flex bg-white p-2 rounded-full border border-slate-200 shadow-sm max-w-fit">
+      {/* Tabs Section */}
+      <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={() => setOrdersTab("history")}
-          className={`rounded-full px-5 py-2.5 text-sm font-bold transition flex-1 sm:min-w-[180px] ${
+          className={`flex items-center gap-2 rounded-full px-6 py-3 text-sm font-bold transition-all ${
             ordersTab === "history"
-              ? "bg-[#0B132B] text-white shadow-md"
-              : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
+              ? "bg-slate-900 text-white shadow-lg shadow-slate-900/10"
+              : "bg-white text-slate-500 hover:bg-slate-50 border border-slate-200 shadow-sm"
           }`}
         >
-          Booking history ({bookings.length})
+          <History className="h-4 w-4" />
+          Full History ({bookings.length})
         </button>
         <button
           type="button"
           onClick={() => setOrdersTab("actions")}
-          className={`rounded-full px-5 py-2.5 text-sm font-bold transition flex-1 sm:min-w-[180px] ${
+          className={`flex items-center gap-2 rounded-full px-6 py-3 text-sm font-bold transition-all relative ${
             ordersTab === "actions"
-              ? "bg-[#00B4D8] text-white shadow-md relative"
-              : "text-slate-500 hover:text-slate-800 hover:bg-slate-50 relative"
+              ? "bg-cyan-600 text-white shadow-lg shadow-cyan-600/10"
+              : "bg-white text-slate-500 hover:bg-slate-50 border border-slate-200 shadow-sm"
           }`}
         >
-          Action needed {actionCount > 0 && (
-             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-fuchsia-500 text-[10px] text-white font-black shadow-sm ring-2 ring-white">
-                {actionCount}
-             </span>
+          <AlertCircle className="h-4 w-4" />
+          Attention Needed
+          {actionCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white font-black ring-2 ring-white shadow-sm animate-bounce">
+              {actionCount}
+            </span>
           )}
         </button>
       </div>
 
-      <OrdersSummary bookings={bookings} />
-
-      <div className="space-y-5 pt-2">
+      {/* Grid Section */}
+      <div className="space-y-6">
         {filteredBookings.length ? (
           filteredBookings.map((booking) => (
             <OrderCard
@@ -221,26 +235,26 @@ export function OrdersPanel({
             />
           ))
         ) : (
-          <div className="rounded-[30px] border border-slate-200 bg-white p-12 text-center shadow-sm">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-slate-50 mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-300"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <div className={`${shellCardClass} p-16 text-center`}>
+            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-3xl bg-slate-50 mb-6 border border-slate-100">
+              <Package className="h-10 w-10 text-slate-200" />
             </div>
             {ordersTab === "history" ? (
               <>
-                <p className="text-xl font-bold text-slate-900">
-                  No orders found.
-                </p>
-                <p className="mt-3 text-sm text-slate-500 max-w-sm mx-auto">
-                  When you book a service, it will appear here for you to track status, payments, and history.
+                <h3 className="text-xl font-bold text-slate-900">
+                  No bookings discovered yet
+                </h3>
+                <p className="mt-2 text-sm font-medium text-slate-400 max-w-sm mx-auto">
+                  When you book a luxury service, your order details and progress tracking will appear here.
                 </p>
               </>
             ) : (
               <>
-                <p className="text-xl font-bold text-slate-900">
-                  All caught up!
-                </p>
-                <p className="mt-3 text-sm text-slate-500 max-w-sm mx-auto">
-                  No customer action is needed right now. If a booking requires your attention, it will appear here.
+                <h3 className="text-xl font-bold text-slate-900">
+                  Clear Skies!
+                </h3>
+                <p className="mt-2 text-sm font-medium text-slate-400 max-w-sm mx-auto">
+                  No bookings currently require your attention. All operations are proceeding normally.
                 </p>
               </>
             )}

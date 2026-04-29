@@ -1,12 +1,27 @@
 "use client";
 
 import Link from "next/link";
+import { 
+  User, 
+  MapPin, 
+  ShoppingBag, 
+  ChevronRight,
+  ShieldCheck,
+  CreditCard,
+  BellRing
+} from "lucide-react";
 import {
   accountSectionLinks,
   type AccountOverviewStats,
   type AccountSectionId,
   shellCardClass,
 } from "./account-shared";
+
+const sectionIcons = {
+  profile: User,
+  addresses: MapPin,
+  orders: ShoppingBag,
+};
 
 export function AccountSidebar({
   activeSection,
@@ -16,90 +31,79 @@ export function AccountSidebar({
   summary: AccountOverviewStats;
 }) {
   return (
-    <aside className={`${shellCardClass} h-fit p-4 xl:sticky xl:top-24`}>
-      <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-          Overview
-        </p>
-        <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-1 xl:gap-3">
-          <div className="rounded-2xl bg-white px-3 py-3 text-sm text-slate-700 xl:flex xl:items-center xl:justify-between xl:bg-transparent xl:px-0 xl:py-0">
-            <span>Total orders</span>
-            <span className="mt-1 block font-semibold text-slate-900 xl:mt-0">
-              {summary.total}
-            </span>
+    <div className="flex flex-col gap-6">
+      <nav className={`${shellCardClass} overflow-hidden p-3`}>
+        <div className="flex flex-col gap-1">
+          {accountSectionLinks.map((link) => {
+            const Icon = sectionIcons[link.id];
+            const isActive = activeSection === link.id;
+
+            return (
+              <Link
+                key={link.id}
+                href={`/account/${link.id}`}
+                className={`group flex items-center gap-4 rounded-2xl px-4 py-4 transition-all duration-300 ${
+                  isActive
+                    ? "bg-cyan-600 text-white shadow-lg shadow-cyan-600/20"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                }`}
+              >
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${
+                  isActive ? "bg-white/20" : "bg-slate-100 group-hover:bg-white"
+                }`}>
+                  <Icon className={`h-5 w-5 ${isActive ? "text-white" : "text-slate-500"}`} />
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold tracking-tight">{link.label}</p>
+                  <p className={`truncate text-[11px] font-medium leading-tight opacity-70 ${
+                    isActive ? "text-cyan-50" : "text-slate-400"
+                  }`}>
+                    {link.description}
+                  </p>
+                </div>
+
+                <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${
+                  isActive ? "text-white/50 translate-x-1" : "text-slate-300 group-hover:text-slate-400 group-hover:translate-x-1"
+                }`} />
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+
+      <div className={`${shellCardClass} p-6`}>
+        <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Activity Overview</h3>
+        
+        <div className="mt-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
+                <BellRing className="h-4 w-4" />
+              </div>
+              <span className="text-sm font-semibold text-slate-700">Active Orders</span>
+            </div>
+            <span className="text-sm font-bold text-slate-900">{summary.active}</span>
           </div>
-          <div className="rounded-2xl bg-white px-3 py-3 text-sm text-slate-700 xl:flex xl:items-center xl:justify-between xl:bg-transparent xl:px-0 xl:py-0">
-            <span>Active orders</span>
-            <span className="mt-1 block font-semibold text-slate-900 xl:mt-0">
-              {summary.active}
-            </span>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <CreditCard className="h-4 w-4" />
+              </div>
+              <span className="text-sm font-semibold text-slate-700">Payments</span>
+            </div>
+            <span className="text-sm font-bold text-slate-900">{summary.total}</span>
           </div>
-          <div className="rounded-2xl bg-white px-3 py-3 text-sm text-slate-700 xl:flex xl:items-center xl:justify-between xl:bg-transparent xl:px-0 xl:py-0">
-            <span>Saved addresses</span>
-            <span className="mt-1 block font-semibold text-slate-900 xl:mt-0">
-              {summary.savedAddresses}
-            </span>
-          </div>
-          <div className="rounded-2xl bg-white px-3 py-3 text-sm text-slate-700 xl:flex xl:items-center xl:justify-between xl:bg-transparent xl:px-0 xl:py-0">
-            <span>Pending requests</span>
-            <span className="mt-1 block font-semibold text-slate-900 xl:mt-0">
-              {summary.pendingRequests}
-            </span>
+
+          <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 mt-4 border border-dashed border-slate-200">
+            <ShieldCheck className="h-4 w-4 text-cyan-600" />
+            <p className="text-[11px] leading-tight text-slate-500 font-medium">
+              Your account is secured with end-to-end encryption.
+            </p>
           </div>
         </div>
       </div>
-
-      <div className="mt-5 px-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-          Account sections
-        </p>
-      </div>
-
-      <nav className="mt-3 grid gap-2 md:grid-cols-2 xl:block xl:space-y-2">
-        {accountSectionLinks.map((item, index) => (
-          <Link
-            key={item.id}
-            href={`/account/${item.id}`}
-            className={`block w-full rounded-[24px] border px-4 py-4 text-left transition ${
-              activeSection === item.id
-                ? "border-cyan-100 bg-cyan-50/90 shadow-sm"
-                : "border-transparent hover:border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <span
-                className={`mt-0.5 inline-flex h-7 min-w-7 items-center justify-center rounded-full text-[11px] font-semibold ${
-                  activeSection === item.id
-                    ? "bg-cyan-600 text-white"
-                    : "bg-slate-100 text-slate-500"
-                }`}
-              >
-                0{index + 1}
-              </span>
-              <div>
-                <p
-                  className={`text-sm font-semibold ${
-                    activeSection === item.id
-                      ? "text-cyan-800"
-                      : "text-slate-900"
-                  }`}
-                >
-                  {item.label}
-                </p>
-                <p
-                  className={`mt-1 text-xs leading-5 ${
-                    activeSection === item.id
-                      ? "text-cyan-700/80"
-                      : "text-slate-500"
-                  }`}
-                >
-                  {item.description}
-                </p>
-              </div>
-            </div>
-          </Link>
-        ))}
-      </nav>
-    </aside>
+    </div>
   );
 }
