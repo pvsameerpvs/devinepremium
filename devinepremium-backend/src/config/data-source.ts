@@ -31,6 +31,11 @@ export const AppDataSource =
         type: "postgres",
         url: env.DATABASE_URL,
         ssl: env.DATABASE_SSL ? { rejectUnauthorized: false } : false,
+        extra: {
+          max: 5, // Limit connections to avoid (EMAXCONNSESSION)
+          connectionTimeoutMillis: 5000,
+          idleTimeoutMillis: 10000,
+        },
         ...sharedOptions,
       })
     : new DataSource({

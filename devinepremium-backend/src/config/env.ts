@@ -58,3 +58,5 @@ export const env = {
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || "",
   ALLOW_MOCK_PAYMENTS: toBoolean(process.env.ALLOW_MOCK_PAYMENTS, false),
 } as const;
+
+console.log(`[Backend] Connecting to database host: ${new URL(env.DATABASE_URL).hostname}`);
