@@ -60,7 +60,8 @@ interface AdminDashboardContextValue {
   ) => Promise<void>;
   assignStaff: (bookingId: string, staffId: string | null) => Promise<void>;
   createStaff: (input: StaffFormState) => Promise<boolean>;
-  updateStaff: (staffId: string, input: StaffFormState) => Promise<boolean>;
+  updateStaff: (staffId: string, input: Partial<StaffFormState>) => Promise<boolean>;
+  toggleStaffActive: (staffId: string, currentStatus: boolean) => Promise<void>;
   deleteStaff: (staffId: string) => Promise<boolean>;
 }
 
@@ -206,7 +207,7 @@ export function AdminDashboardProvider({
     );
   }
 
-  async function updateStaff(staffId: string, input: StaffFormState) {
+  async function updateStaff(staffId: string, input: Partial<StaffFormState>) {
     return runDashboardAction(
       `update-staff:${staffId}`,
       "Staff member updated successfully.",
@@ -215,6 +216,22 @@ export function AdminDashboardProvider({
           method: "PATCH",
           token: session.token,
           body: JSON.stringify(input),
+        });
+      },
+    );
+  }
+
+  async function toggleStaffActive(staffId: string, currentStatus: boolean) {
+    await runDashboardAction(
+      `toggle-staff:${staffId}`,
+      `Staff member ${!currentStatus ? "enabled" : "disabled"} successfully.`,
+      async () => {
+        await apiRequest(`/api/v1/admin/staff/${staffId}`, {
+          method: "PATCH",
+          token: session.token,
+          body: JSON.stringify({
+            isActive: !currentStatus,
+          }),
         });
       },
     );
@@ -332,6 +349,7 @@ export function AdminDashboardProvider({
     assignStaff,
     createStaff,
     updateStaff,
+    toggleStaffActive,
     deleteStaff,
   };
 

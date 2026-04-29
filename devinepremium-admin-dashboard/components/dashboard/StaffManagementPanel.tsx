@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAdminDashboard } from "./AdminDashboardProvider";
 import {
   type StaffAvailabilityDay,
   type StaffMember,
@@ -45,6 +46,7 @@ export function StaffManagementPanel({
   staffMembers: StaffMember[];
 }) {
   const router = useRouter();
+  const { toggleStaffActive, activeAction } = useAdminDashboard();
 
   const activeStaffCount = useMemo(
     () => staffMembers.filter((staffMember) => staffMember.isActive).length,
@@ -150,15 +152,37 @@ export function StaffManagementPanel({
                         "-"}
                     </td>
                     <td className="px-5 py-4">
-                      <span
-                        className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] ${
-                          staffMember.isActive
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-slate-200 text-slate-600"
-                        }`}
-                      >
-                        {staffMember.isActive ? "Active" : "Inactive"}
-                      </span>
+                      <div className="flex items-center gap-4">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleStaffActive(staffMember.id, staffMember.isActive);
+                          }}
+                          disabled={activeAction === `toggle-staff:${staffMember.id}`}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#152344] focus:ring-offset-2 ${
+                            staffMember.isActive ? "bg-emerald-500" : "bg-slate-300"
+                          } ${
+                            activeAction === `toggle-staff:${staffMember.id}`
+                              ? "opacity-50 cursor-wait"
+                              : ""
+                          }`}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              staffMember.isActive ? "translate-x-5" : "translate-x-0"
+                            }`}
+                          />
+                        </button>
+                        <span
+                          className={`text-[11px] font-bold uppercase tracking-[0.1em] ${
+                            staffMember.isActive ? "text-emerald-600" : "text-slate-500"
+                          }`}
+                        >
+                          {staffMember.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-5 py-4 text-sm text-slate-600">
                       {formatAvailabilityDays(staffMember.availabilityDays)}

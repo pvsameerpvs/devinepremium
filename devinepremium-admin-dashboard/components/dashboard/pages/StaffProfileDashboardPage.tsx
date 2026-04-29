@@ -83,7 +83,7 @@ export function StaffProfileDashboardPage({
   staffId?: string;
 }) {
   const router = useRouter();
-  const { activeAction, deleteStaff, isLoading, staffMembers, updateStaff } =
+  const { activeAction, deleteStaff, isLoading, staffMembers, updateStaff, toggleStaffActive } =
     useAdminDashboard();
   const normalizedRequestedSlug = staffSlug.trim().toLowerCase();
   const staffMember = useMemo(
@@ -319,15 +319,34 @@ export function StaffProfileDashboardPage({
                   </p>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span
-                    className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${
-                      staffMember.isActive
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-slate-200 text-slate-600"
-                    }`}
-                  >
-                    {staffMember.isActive ? "Active" : "Inactive"}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleStaffActive(staffMember.id, staffMember.isActive)}
+                      disabled={activeAction === `toggle-staff:${staffMember.id}`}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#152344] focus:ring-offset-2 ${
+                        staffMember.isActive ? "bg-emerald-500" : "bg-slate-300"
+                      } ${
+                        activeAction === `toggle-staff:${staffMember.id}`
+                          ? "opacity-50 cursor-wait"
+                          : ""
+                      }`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          staffMember.isActive ? "translate-x-5" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                    <span
+                      className={`text-[11px] font-bold uppercase tracking-[0.12em] ${
+                        staffMember.isActive ? "text-emerald-700" : "text-slate-500"
+                      }`}
+                    >
+                      {staffMember.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </div>
                   <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
                     Slug: {staffMember.slug}
                   </span>
