@@ -327,13 +327,17 @@ export const bookingService = {
       userId: user.id,
       payerEmail: email,
       method: input.paymentMethod,
-      provider: input.paymentMethod === "online" ? "mock-gateway" : "cash",
+      provider: input.paymentMethod === "online" ? "stripe" : "cash",
       status: input.paymentMethod === "online" ? "pending" : "cash_due",
       amount: pricing.total,
       currency: "AED",
       checkoutReference: createReference(
         input.paymentMethod === "online" ? "PAY" : "CASH",
       ),
+      providerSessionId: null,
+      providerPaymentId: null,
+      receiptUrl: null,
+      failureReason: null,
       metadata: {
         serviceTitle: service.title,
         serviceSlug: service.slug,

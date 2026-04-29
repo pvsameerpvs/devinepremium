@@ -1,19 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { type CustomerAccountResponse } from "@/lib/account";
+import {
+  type BookingHistoryResponse,
+  type CustomerAccountResponse,
+} from "@/lib/account";
 import { type UserSession, saveUserSession } from "@/lib/auth";
 import { apiRequest } from "@/lib/api";
 import { ProfilePanel } from "../ProfilePanel";
+import { PaymentHistoryPanel } from "../PaymentHistoryPanel";
 import { type ProfileFormState } from "../account-shared";
 
 interface ProfileTabProps {
   session: UserSession;
   accountData?: CustomerAccountResponse;
+  bookingData?: BookingHistoryResponse;
   mutateAccount: () => Promise<unknown>;
 }
 
-export function ProfileTab({ session, accountData, mutateAccount }: ProfileTabProps) {
+export function ProfileTab({
+  session,
+  accountData,
+  bookingData,
+  mutateAccount,
+}: ProfileTabProps) {
   const [profileForm, setProfileForm] = useState<ProfileFormState>({
     fullName: "",
     phone: "",
@@ -69,7 +79,7 @@ export function ProfileTab({ session, accountData, mutateAccount }: ProfileTabPr
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       {pageMessage && (
         <div className={`mb-6 rounded-[20px] border px-5 py-4 text-sm ${pageMessage.toLowerCase().includes("success") ? "border-green-200 bg-green-50 text-green-700" : "border-red-200 bg-red-50 text-red-700"}`}>
           {pageMessage}
@@ -81,6 +91,7 @@ export function ProfileTab({ session, accountData, mutateAccount }: ProfileTabPr
         onSave={handleProfileSave}
         isSaving={activeMutation === "save-profile"}
       />
+      <PaymentHistoryPanel bookings={bookingData?.bookings ?? []} />
     </div>
   );
 }

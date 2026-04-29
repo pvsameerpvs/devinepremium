@@ -83,3 +83,50 @@ DB_SYNCHRONIZE=false
 ```
 
 Before turning off `DB_SYNCHRONIZE`, create a real migration workflow.
+
+## Stripe Online Payments
+
+The customer app uses Stripe Checkout for online booking payments.
+
+Backend env required:
+
+```text
+CUSTOMER_APP_URL=https://www.devinepremium.com
+STRIPE_SECRET_KEY=sk_test_or_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+ALLOW_MOCK_PAYMENTS=false
+```
+
+Stripe webhook endpoint:
+
+```text
+https://api.devinepremium.com/api/v1/payments/stripe/webhook
+```
+
+Subscribe the endpoint to these events:
+
+```text
+checkout.session.completed
+checkout.session.async_payment_succeeded
+checkout.session.async_payment_failed
+checkout.session.expired
+payment_intent.payment_failed
+charge.succeeded
+charge.updated
+charge.refunded
+```
+
+For local testing, forward Stripe events to the backend:
+
+```bash
+stripe listen --forward-to localhost:4000/api/v1/payments/stripe/webhook
+```
+
+Use sandbox keys first. When you go live, replace test keys with live keys and
+create the live webhook endpoint/signing secret in the Stripe Dashboard.
+
+If your production database already exists and `DB_SYNCHRONIZE=false`, run:
+
+```text
+docs/supabase-stripe-payments-migration.sql
+```

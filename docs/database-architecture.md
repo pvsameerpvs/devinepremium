@@ -210,11 +210,15 @@ Columns:
 | `userId` | `varchar` nullable | FK to `users.id` |
 | `payerEmail` | `varchar(255)` | payer identity |
 | `method` | `varchar(32)` | `cash` or `online` |
-| `provider` | `varchar(64)` | `cash` or `mock-gateway` currently |
+| `provider` | `varchar(64)` | `cash` or `stripe` |
 | `status` | `varchar(32)` | payment state |
 | `amount` | `float` | amount in AED |
 | `currency` | `varchar(8)` | `AED` |
 | `checkoutReference` | `varchar(96)` | unique payment reference |
+| `providerSessionId` | `varchar` nullable | Stripe Checkout Session ID |
+| `providerPaymentId` | `varchar` nullable | Stripe PaymentIntent ID |
+| `receiptUrl` | `varchar` nullable | Stripe receipt URL when available |
+| `failureReason` | `varchar` nullable | latest provider failure message |
 | `metadata` | `simple-json` nullable | extra payment context |
 | `paidAt` | `varchar` nullable | ISO string when marked paid |
 | `createdAt` | timestamp | auto-generated |

@@ -56,6 +56,18 @@ export class Payment {
   @Column({ type: "varchar", length: 96, unique: true })
   checkoutReference!: string;
 
+  @Column({ type: "varchar", nullable: true, unique: true })
+  providerSessionId!: string | null;
+
+  @Column({ type: "varchar", nullable: true, unique: true })
+  providerPaymentId!: string | null;
+
+  @Column({ type: "varchar", nullable: true })
+  receiptUrl!: string | null;
+
+  @Column({ type: "varchar", nullable: true })
+  failureReason!: string | null;
+
   @Column({ type: "simple-json", nullable: true })
   metadata!: Record<string, unknown> | null;
 

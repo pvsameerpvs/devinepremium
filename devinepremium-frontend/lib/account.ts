@@ -35,8 +35,16 @@ export interface BookingStatusHistory {
 export interface PaymentRecord {
   id: string;
   method: string;
+  provider?: string;
   status: string;
   amount: number;
+  currency?: string;
+  checkoutReference?: string;
+  providerSessionId?: string | null;
+  providerPaymentId?: string | null;
+  receiptUrl?: string | null;
+  failureReason?: string | null;
+  paidAt?: string | null;
   createdAt: string;
 }
 

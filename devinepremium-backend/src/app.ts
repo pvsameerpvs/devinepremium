@@ -7,6 +7,7 @@ import authRoutes from "./routes/authRoutes";
 import bookingRoutes from "./routes/bookingRoutes";
 import paymentRoutes from "./routes/paymentRoutes";
 import serviceRoutes from "./routes/serviceRoutes";
+import stripeWebhookRoutes from "./routes/stripeWebhookRoutes";
 import { HttpError } from "./utils/http";
 
 export function createApp() {
@@ -23,6 +24,12 @@ export function createApp() {
         callback(new Error("Origin not allowed by CORS."));
       },
     }),
+  );
+
+  app.use(
+    "/api/v1/payments/stripe/webhook",
+    express.raw({ type: "application/json" }),
+    stripeWebhookRoutes,
   );
 
   app.use(express.json({ limit: "80mb" }));

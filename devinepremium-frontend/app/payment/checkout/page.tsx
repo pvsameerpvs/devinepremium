@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
@@ -15,21 +15,36 @@ interface PaymentCheckoutResponse {
     id: string;
     status: string;
     amount: number;
+    currency: string;
     method: string;
+    provider: string;
+    checkoutReference: string;
+    providerSessionId?: string | null;
+    providerPaymentId?: string | null;
+    receiptUrl?: string | null;
+    failureReason?: string | null;
+    paidAt?: string | null;
+    createdAt?: string;
   };
   booking: {
+    id: string;
     bookingReference: string;
     serviceTitle: string;
+    paymentStatus: string;
   };
 }
 
 function PaymentCheckoutContent() {
   const searchParams = useSearchParams();
   const paymentId = searchParams.get("paymentId");
+  const stripeSessionId = searchParams.get("session_id");
+  const returnStatus = searchParams.get("status");
   const [message, setMessage] = useState("");
   const [isPaying, setIsPaying] = useState(false);
   const [session, setSession] = useState<UserSession | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const syncAttemptRef = useRef("");
 
   useEffect(() => {
     setSession(getStoredUserSession());
@@ -53,7 +68,45 @@ function PaymentCheckoutContent() {
       }),
   );
 
-  async function handleCompletePayment() {
+  useEffect(() => {
+    if (
+      !paymentId ||
+      !stripeSessionId ||
+      !session?.token ||
+      syncAttemptRef.current === stripeSessionId
+    ) {
+      return;
+    }
+
+    syncAttemptRef.current = stripeSessionId;
+    setIsSyncing(true);
+    setMessage("Refreshing payment status from Stripe...");
+
+    void apiRequest<{ message: string }>(
+      `/api/v1/payments/${paymentId}/sync-session`,
+      {
+        method: "POST",
+        token: session.token,
+        body: JSON.stringify({
+          sessionId: stripeSessionId,
+        }),
+      },
+    )
+      .then(async (response) => {
+        setMessage(response.message);
+        await mutate();
+      })
+      .catch((syncError) => {
+        setMessage(
+          syncError instanceof Error
+            ? syncError.message
+            : "Could not refresh Stripe payment status.",
+        );
+      })
+      .finally(() => setIsSyncing(false));
+  }, [mutate, paymentId, session?.token, stripeSessionId]);
+
+  async function handleStartStripeCheckout() {
     if (!paymentId || !session?.token) {
       return;
     }
@@ -62,8 +115,11 @@ function PaymentCheckoutContent() {
     setMessage("");
 
     try {
-      const response = await apiRequest<{ message: string }>(
-        `/api/v1/payments/${paymentId}/complete`,
+      const response = await apiRequest<{
+        message: string;
+        checkoutUrl: string | null;
+      }>(
+        `/api/v1/payments/${paymentId}/checkout-session`,
         {
           method: "POST",
           token: session.token,
@@ -71,12 +127,17 @@ function PaymentCheckoutContent() {
       );
 
       setMessage(response.message);
+      if (response.checkoutUrl) {
+        window.location.href = response.checkoutUrl;
+        return;
+      }
+
       await mutate();
     } catch (submissionError) {
       setMessage(
         submissionError instanceof Error
           ? submissionError.message
-          : "Payment could not be completed.",
+          : "Stripe Checkout could not be started.",
       );
     } finally {
       setIsPaying(false);
@@ -143,6 +204,13 @@ function PaymentCheckoutContent() {
             </div>
           )}
 
+          {returnStatus === "cancelled" && session && (
+            <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
+              Stripe checkout was cancelled. You can safely continue the payment
+              again when you are ready.
+            </div>
+          )}
+
           {data && session && (
             <div className="space-y-5">
               <div className="rounded-[28px] border border-slate-200 p-6">
@@ -162,7 +230,7 @@ function PaymentCheckoutContent() {
                   Payment summary
                 </p>
                 <p className="mt-3 text-4xl font-black text-slate-900">
-                  {data.payment.amount.toFixed(2)} AED
+                  {data.payment.amount.toFixed(2)} {data.payment.currency}
                 </p>
                 <p className="mt-3 text-sm text-slate-600">
                   Method: {data.payment.method}
@@ -170,17 +238,44 @@ function PaymentCheckoutContent() {
                 <p className="mt-1 text-sm text-slate-600">
                   Status: {data.payment.status}
                 </p>
+                <p className="mt-1 text-sm text-slate-600">
+                  Provider: {data.payment.provider}
+                </p>
+                <p className="mt-1 text-sm text-slate-600">
+                  Reference: {data.payment.checkoutReference}
+                </p>
+                {data.payment.failureReason && (
+                  <p className="mt-3 rounded-2xl border border-red-100 bg-white px-4 py-3 text-sm text-red-700">
+                    {data.payment.failureReason}
+                  </p>
+                )}
               </div>
 
               {data.payment.status !== "paid" && (
                 <button
                   type="button"
-                  onClick={handleCompletePayment}
-                  disabled={isPaying}
+                  onClick={handleStartStripeCheckout}
+                  disabled={isPaying || isSyncing}
                   className="w-full rounded-2xl bg-[#7B2D8B] px-5 py-4 text-sm font-semibold text-white transition hover:bg-[#632271] disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {isPaying ? "Processing payment..." : "Pay now"}
+                  {isPaying ? "Opening Stripe..." : "Pay securely with Stripe"}
                 </button>
+              )}
+
+              {data.payment.status === "paid" && (
+                <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800">
+                  Payment completed. Your booking is now marked as paid.
+                  {data.payment.receiptUrl && (
+                    <a
+                      href={data.payment.receiptUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="ml-1 font-semibold underline"
+                    >
+                      View receipt
+                    </a>
+                  )}
+                </div>
               )}
 
               {message && (

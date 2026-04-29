@@ -7,10 +7,11 @@ import { UserSession } from "@/lib/auth";
 export default function ProfilePage() {
   return (
     <CustomerAccountWrapper activeSection="profile">
-      {({ session, accountData, mutateAccount }) => (
+      {({ session, accountData, bookingData, mutateAccount }) => (
         <ProfileTab
           session={session as UserSession}
           accountData={accountData}
+          bookingData={bookingData}
           mutateAccount={mutateAccount}
         />
       )}
