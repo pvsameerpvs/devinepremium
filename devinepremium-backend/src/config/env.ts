@@ -59,4 +59,7 @@ export const env = {
   ALLOW_MOCK_PAYMENTS: toBoolean(process.env.ALLOW_MOCK_PAYMENTS, false),
 } as const;
 
-console.log(`[Backend] Connecting to database host: ${new URL(env.DATABASE_URL).hostname}`);
+console.log(`[Backend] Database driver: ${env.DATABASE_DRIVER}`);
+if (env.DATABASE_URL) {
+  console.log(`[Backend] Connecting to database host: ${new URL(env.DATABASE_URL).hostname}`);
+}

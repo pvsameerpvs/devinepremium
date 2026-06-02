@@ -114,9 +114,14 @@ export default function LoginPage() {
 
     try {
       const supabase = getSupabaseBrowserClient();
-      const redirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(
-        getRedirectTarget(),
-      )}`;
+      // Store the redirect target in sessionStorage so the callback page
+      // can read it without relying on query parameters in the OAuth redirect.
+      try {
+        sessionStorage.setItem("oauth-redirect", getRedirectTarget());
+      } catch {
+        // Ignore if storage is unavailable.
+      }
+      const redirectTo = `${window.location.origin}/auth/callback`;
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {

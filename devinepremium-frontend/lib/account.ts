@@ -92,6 +92,7 @@ export interface BookingRecord {
     lng?: string;
   };
   contactName: string;
+  contactEmail: string;
   createdAt: string;
   statusHistory: BookingStatusHistory[];
   payments: PaymentRecord[];

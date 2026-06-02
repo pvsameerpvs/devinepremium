@@ -16,6 +16,19 @@ function getRedirectTarget() {
     return "/account";
   }
 
+  // Prefer the redirect stored in sessionStorage by the login page
+  // (avoids issues with query params inside the OAuth redirect_to URL).
+  try {
+    const stored = sessionStorage.getItem("oauth-redirect");
+    if (stored && stored.startsWith("/") && !stored.startsWith("//")) {
+      sessionStorage.removeItem("oauth-redirect");
+      return stored;
+    }
+  } catch {
+    // Ignore if storage is unavailable.
+  }
+
+  // Fallback to the query param for backward compatibility.
   const redirect = new URLSearchParams(window.location.search).get("redirect");
 
   if (!redirect || !redirect.startsWith("/") || redirect.startsWith("//")) {

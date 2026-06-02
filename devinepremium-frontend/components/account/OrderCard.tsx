@@ -344,7 +344,7 @@ export function OrderCard({
                     <div className="mt-4 flex gap-3 items-start">
                       <MessageSquare className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
                       <p className="text-sm text-slate-600 leading-relaxed italic">
-                        "{booking.customerRequest.note}"
+                        {booking.customerRequest.note}
                       </p>
                     </div>
                   )}
