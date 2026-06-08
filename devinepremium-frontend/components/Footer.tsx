@@ -17,9 +17,9 @@ export function Footer() {
                   <Image
                     src="/logo.png"
                     alt="Devine Premier Technical Services"
-                    width={80}
-                    height={80}
-                    className="object-contain"
+                    width={170}
+                    height={156}
+                    className="object-contain h-20 w-auto"
                   />
                </div>
             </Link>

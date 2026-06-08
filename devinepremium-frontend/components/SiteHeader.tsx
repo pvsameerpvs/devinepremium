@@ -60,9 +60,9 @@ export function SiteHeader() {
               <Image
                 src="/logo.png"
                 alt="Devine Premier Technical Services"
-                width={44}
-                height={44}
-                className="object-contain"
+                width={170}
+                height={156}
+                className="object-contain h-11 w-auto"
                 priority
               />
             </div>
@@ -148,9 +148,9 @@ export function SiteHeader() {
                   <Image
                     src="/logo.png"
                     alt="Devine Premier"
-                    width={32}
-                    height={32}
-                    className="object-contain"
+                    width={170}
+                    height={156}
+                    className="object-contain h-8 w-auto"
                   />
                 </div>
                 <div className="leading-tight">
