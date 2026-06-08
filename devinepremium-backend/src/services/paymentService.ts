@@ -6,6 +6,7 @@ import { Payment } from "../entities/Payment";
 import { getStripeClient } from "../lib/stripe";
 import { PaymentStatus } from "../types/domain";
 import { HttpError } from "../utils/http";
+import { createStatusHistoryEntry } from "./bookingService";
 
 const paymentRepository = () => AppDataSource.getRepository(Payment);
 const bookingRepository = () => AppDataSource.getRepository(Booking);
@@ -61,8 +62,42 @@ async function savePaymentAndBooking(
   payment.failureReason = status === "failed" ? payment.failureReason : null;
   await paymentRepository().save(payment);
 
-  payment.booking.paymentStatus = status;
-  await bookingRepository().save(payment.booking);
+  const booking = payment.booking;
+  const previousBookingStatus = booking.status;
+  booking.paymentStatus = status;
+
+  // Auto-cancel booking when online payment fails so it never shows in dashboard
+  if (status === "failed" && booking.status !== "cancelled") {
+    booking.status = "cancelled";
+  }
+
+  // Restore booking when payment succeeds after a previous failure
+  if (status === "paid" && booking.status === "cancelled") {
+    booking.status = "pending";
+  }
+
+  await bookingRepository().save(booking);
+
+  // Record status changes in history
+  if (status === "failed" && previousBookingStatus !== "cancelled") {
+    await createStatusHistoryEntry({
+      bookingId: booking.id,
+      changedByUserId: null,
+      fromStatus: previousBookingStatus,
+      toStatus: "cancelled",
+      note: `Booking auto-cancelled because online payment failed. ${payment.failureReason || ""}`,
+    });
+  }
+
+  if (status === "paid" && previousBookingStatus === "cancelled") {
+    await createStatusHistoryEntry({
+      bookingId: booking.id,
+      changedByUserId: null,
+      fromStatus: "cancelled",
+      toStatus: "pending",
+      note: "Booking restored to pending after successful online payment.",
+    });
+  }
 
   return payment;
 }

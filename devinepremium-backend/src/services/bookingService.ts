@@ -110,7 +110,7 @@ function toCustomerRequestNote(
   return note?.trim() ? `${scheduleText} ${note.trim()}` : scheduleText;
 }
 
-async function createStatusHistoryEntry(input: {
+export async function createStatusHistoryEntry(input: {
   bookingId: string;
   changedByUserId: string | null;
   fromStatus: BookingStatus | null;
@@ -388,6 +388,7 @@ export const bookingService = {
       .leftJoinAndSelect("booking.statusHistory", "statusHistory")
       .leftJoinAndSelect("booking.assignedStaff", "assignedStaff")
       .where("booking.userId = :userId", { userId })
+      .andWhere("booking.status != :cancelled", { cancelled: "cancelled" })
       .orderBy("booking.createdAt", "DESC")
       .addOrderBy("statusHistory.createdAt", "DESC")
       .addOrderBy("payment.createdAt", "DESC")
@@ -423,6 +424,7 @@ export const bookingService = {
       .leftJoinAndSelect("booking.assignedStaff", "assignedStaff")
       .leftJoinAndSelect("booking.payments", "payment")
       .leftJoinAndSelect("booking.statusHistory", "statusHistory")
+      .where("booking.status != :cancelled", { cancelled: "cancelled" })
       .orderBy("booking.createdAt", "DESC")
       .addOrderBy("statusHistory.createdAt", "DESC")
       .addOrderBy("payment.createdAt", "DESC")

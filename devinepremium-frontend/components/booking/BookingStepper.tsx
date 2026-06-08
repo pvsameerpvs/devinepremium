@@ -668,13 +668,13 @@ export function BookingStepper({ service }: BookingStepperProps) {
       });
 
       setIsModalOpen(false);
-      toast.success("Booking created successfully!");
 
       if (values.payment.method === "online" && response.payment?.id) {
         window.location.href = `/payment/checkout?paymentId=${response.payment.id}`;
         return;
       }
 
+      toast.success("Booking created successfully!");
       window.location.href = "/account";
     } catch (error) {
       if (isUserSessionError(error)) {
