@@ -161,7 +161,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="relative min-h-screen bg-[linear-gradient(145deg,#d6f4fa_0%,#f7fcfd_42%,#f8f2fb_100%)] px-3 py-3 sm:px-4 sm:py-4 lg:h-dvh lg:overflow-hidden">
+    <main className="relative min-h-screen bg-[linear-gradient(145deg,#d6f4fa_0%,#f7fcfd_42%,#f8f2fb_100%)] px-3 py-3 sm:px-4 sm:py-4 lg:h-dvh lg:overflow-y-auto">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-[-8rem] top-[-6rem] h-72 w-72 rounded-full bg-[#00B4D8]/16 blur-3xl" />
         <div className="absolute right-[-6rem] top-[10rem] h-72 w-72 rounded-full bg-[#7B2D8B]/10 blur-3xl" />
@@ -215,7 +215,7 @@ export default function LoginPage() {
           </div>
         </section>
 
-        <section className="relative px-4 py-4 sm:px-6 sm:py-6 lg:flex lg:h-full lg:items-center lg:px-8 lg:py-8">
+        <section className="relative px-4 py-4 sm:px-6 sm:py-6 lg:flex lg:h-full lg:items-center lg:overflow-y-auto lg:px-8 lg:py-8">
           <div className="rounded-[28px] border border-slate-200/80 bg-white p-5 shadow-[0_20px_70px_rgba(15,23,42,0.08)] sm:p-6 lg:w-full lg:p-7">
             <div className="flex flex-wrap items-center gap-3">
               <span className="rounded-full bg-cyan-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-700">
