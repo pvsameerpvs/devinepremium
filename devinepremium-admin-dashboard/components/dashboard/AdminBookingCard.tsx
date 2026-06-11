@@ -3,12 +3,8 @@
 import { useState } from "react";
 import Image from "next/image";
 import { BOOKING_STATUSES, PAYMENT_STATUSES } from "@devinepremium/shared";
-import { formatAddressLine, formatStatusLabel, type AdminBooking, type StaffMember } from "@/lib/dashboard";
-import { getBookingStatusColor, getPaymentStatusColor } from "./dashboard-shared";
-
-function toDisplayText(value: string) {
-  return formatStatusLabel(value).replace(/\b\w/g, (char) => char.toUpperCase());
-}
+import { formatAddressLine, type AdminBooking, type StaffMember } from "@/lib/dashboard";
+import { getBookingStatusColor, getPaymentStatusColor, toDisplayText } from "./dashboard-shared";
 
 function getInitials(fullName?: string | null) {
   if (!fullName) return "NA";

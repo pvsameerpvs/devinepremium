@@ -1,4 +1,39 @@
-import type { AdminBooking, StaffMember } from "@/lib/dashboard";
+import { formatStatusLabel, type AdminBooking, type StaffMember } from "@/lib/dashboard";
+
+export const PAYMENT_METHOD_ICONS: Record<string, string> = {
+  cash: "\u{1F4B5}",
+  online: "\u{1F4B3}",
+};
+
+export function toDisplayText(value: string) {
+  return formatStatusLabel(value).replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+export function getPaymentLabel(value: string) {
+  switch (value) {
+    case "cash_due": return "Cash Due";
+    case "pending": return "Pending";
+    case "paid": return "Paid";
+    case "failed": return "Failed";
+    case "refunded": return "Refunded";
+    default: return toDisplayText(value);
+  }
+}
+
+export function formatPaidDate(paidAt: string | null | undefined) {
+  if (!paidAt) return null;
+  try {
+    return new Date(paidAt).toLocaleString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return paidAt;
+  }
+}
 
 export interface PageMessage {
   tone: "success" | "error";

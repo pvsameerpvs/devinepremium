@@ -5,11 +5,7 @@ import { BOOKING_STATUSES } from "@devinepremium/shared";
 import type { AdminBooking, StaffMember } from "@/lib/dashboard";
 import { getAvailableStaffForDate } from "@/lib/dashboard";
 import { AdminBookingCard } from "./AdminBookingCard";
-import { getAssignableStaff, getBookingStatusColor } from "./dashboard-shared";
-
-function toDisplayText(value: string) {
-  return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
-}
+import { getAssignableStaff, getBookingStatusColor, toDisplayText } from "./dashboard-shared";
 
 export function BookingOperationsPanel({
   bookings,
