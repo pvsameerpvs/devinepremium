@@ -6,15 +6,18 @@
     "devinepremium-frontend",
     "devinepremium-admin-dashboard",
     "devinepremium-backend",
+    "devinepremium-staff-pwa",
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n frontend,admin,backend -c cyan,magenta,yellow \"npm run dev -w devinepremium-frontend\" \"npm run dev -w devinepremium-admin-dashboard\" \"npm run dev -w devinepremium-backend\"",
+    "dev": "concurrently -n frontend,admin,staff,backend -c cyan,magenta,green,yellow \"npm run dev -w devinepremium-frontend\" \"npm run dev -w devinepremium-admin-dashboard\" \"npm run dev -w devinepremium-staff-pwa\" \"npm run dev -w devinepremium-backend\"",
     "dev:frontend": "npm run dev -w devinepremium-frontend",
     "dev:admin": "npm run dev -w devinepremium-admin-dashboard",
+    "dev:staff": "npm run dev -w devinepremium-staff-pwa",
     "dev:backend": "npm run dev -w devinepremium-backend",
-    "build": "npm run build -w devinepremium-frontend && npm run build -w devinepremium-admin-dashboard && npm run build -w devinepremium-backend",
-    "lint": "npm run lint -w devinepremium-frontend && npm run lint -w devinepremium-admin-dashboard",
+    "build": "npm run build -w devinepremium-frontend && npm run build -w devinepremium-admin-dashboard && npm run build -w devinepremium-backend && npm run build -w devinepremium-staff-pwa",
+    "build:staff": "npm run build -w devinepremium-staff-pwa",
+    "lint": "npm run lint -w devinepremium-frontend && npm run lint -w devinepremium-admin-dashboard && npm run lint -w devinepremium-staff-pwa",
     "start:backend": "npm run start -w devinepremium-backend"
   },
   "devDependencies": {

@@ -76,10 +76,25 @@ export interface AdminBooking {
   assignedStaffId?: string | null;
   assignedAt?: string | null;
   assignedStaff?: StaffMember | null;
+  pricing: {
+    subtotal: number;
+    discount: number;
+    vat: number;
+    total: number;
+    lineItems: Array<{
+      label: string;
+      amount: number;
+    }>;
+  };
   payments: Array<{
     id: string;
     status: string;
     method: string;
+    amount?: number;
+    currency?: string;
+    paidAt?: string | null;
+    createdAt?: string;
+    receiptUrl?: string | null;
   }>;
   statusHistory: Array<{
     id: string;

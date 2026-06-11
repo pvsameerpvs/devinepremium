@@ -20,7 +20,7 @@ export class StaffMember {
   @Column({ type: "varchar", length: 255, unique: true, nullable: true })
   slug!: string | null;
 
-  @Column({ type: "varchar", length: 255, nullable: true })
+  @Column({ type: "varchar", length: 255, nullable: true, unique: true })
   email!: string | null;
 
   @Column({ type: "varchar", length: 64, nullable: true })
@@ -40,6 +40,9 @@ export class StaffMember {
 
   @Column({ type: "boolean", default: true })
   isActive!: boolean;
+
+  @Column({ type: "varchar", nullable: true, select: false })
+  passwordHash!: string | null;
 
   @OneToMany(() => Booking, (booking) => booking.assignedStaff)
   bookings!: Booking[];

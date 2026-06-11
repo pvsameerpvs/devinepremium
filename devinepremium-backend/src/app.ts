@@ -1,3 +1,4 @@
+import { ZodError } from "zod";
 import cors from "cors";
 import express from "express";
 import accountRoutes from "./routes/accountRoutes";
@@ -7,6 +8,7 @@ import authRoutes from "./routes/authRoutes";
 import bookingRoutes from "./routes/bookingRoutes";
 import paymentRoutes from "./routes/paymentRoutes";
 import serviceRoutes from "./routes/serviceRoutes";
+import staffRoutes from "./routes/staffRoutes";
 import stripeWebhookRoutes from "./routes/stripeWebhookRoutes";
 import { HttpError } from "./utils/http";
 
@@ -47,12 +49,24 @@ export function createApp() {
   app.use("/api/v1/bookings", bookingRoutes);
   app.use("/api/v1/payments", paymentRoutes);
   app.use("/api/v1/admin", adminRoutes);
+  app.use("/api/v1/staff", staffRoutes);
 
   app.use((_req, res) => {
     res.status(404).json({ message: "Route not found." });
   });
 
   app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    if (error instanceof ZodError) {
+      res.status(400).json({
+        message: "Validation failed.",
+        errors: error.issues.map((e) => ({
+          field: (e.path || []).join("."),
+          message: e.message,
+        })),
+      });
+      return;
+    }
+
     const message =
       error instanceof Error ? error.message : "Unexpected server error.";
     const statusCode =

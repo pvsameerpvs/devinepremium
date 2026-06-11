@@ -66,6 +66,7 @@ export function CustomerAccountWrapper({
         method: "GET",
         token,
       }),
+    { refreshInterval: 20000 },
   );
 
   const summary = useMemo(() => {

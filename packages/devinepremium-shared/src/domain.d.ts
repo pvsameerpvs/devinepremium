@@ -1,4 +1,4 @@
-export declare const USER_ROLES: readonly ["user", "admin"];
+export declare const USER_ROLES: readonly ["user", "admin", "staff"];
 export type UserRole = (typeof USER_ROLES)[number];
 
 export declare const BOOKING_STATUSES: readonly [

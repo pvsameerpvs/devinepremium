@@ -20,6 +20,7 @@ export interface StaffFormState {
   profilePhotoUrl: string;
   documentImageUrls: string[];
   isActive: boolean;
+  password?: string;
 }
 
 function formatAvailabilityLabel(day: StaffAvailabilityDay) {
@@ -63,23 +64,28 @@ export function StaffManagementPanel({
     <section className="space-y-5">
       <div className="rounded-[24px] border border-slate-200 bg-white px-5 py-4 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A65A2A]">
-              Staff
-            </p>
-            <h2 className="mt-1 text-xl font-black text-slate-900">
-              Staff Directory
-            </h2>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#152344]">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#A65A2A]">
+                Staff
+              </p>
+              <h2 className="mt-1 text-xl font-black text-slate-900">
+                Staff Directory
+              </h2>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <p className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
-              {activeStaffCount} active / {staffMembers.length} total
+              <span className="text-emerald-600 font-bold">{activeStaffCount} active</span> / {staffMembers.length} total
             </p>
             <Link
               href="/dashboard/staff/create"
               className="rounded-full bg-[#152344] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0f1b36]"
             >
-              Create staff
+              + Create staff
             </Link>
           </div>
         </div>

@@ -7,6 +7,11 @@ declare global {
         role: string;
         fullName: string;
       };
+      staffUser?: {
+        id: string;
+        fullName: string;
+        email: string | null;
+      };
     }
   }
 }

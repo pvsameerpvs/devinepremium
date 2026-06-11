@@ -1,4 +1,4 @@
-const USER_ROLES = ["user", "admin"];
+const USER_ROLES = ["user", "admin", "staff"];
 
 const BOOKING_STATUSES = [
   "pending",

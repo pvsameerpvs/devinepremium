@@ -37,19 +37,20 @@ const staffDaySchema = z.enum(STAFF_AVAILABILITY_DAYS);
 const createStaffSchema = z.object({
   fullName: z.string().min(2),
   slug: z.string().optional(),
-  email: z.string().optional(),
+  email: z.string().email().optional(),
   phone: z.string().optional(),
   availabilityDays: z.array(staffDaySchema).min(1),
   notes: z.string().optional(),
   profilePhotoUrl: z.string().optional(),
   documentImageUrls: z.array(z.string()).max(8).optional(),
   isActive: z.boolean().optional(),
+  password: z.string().min(8).optional(),
 });
 
 const updateStaffSchema = z.object({
   fullName: z.string().min(2).optional(),
   slug: z.string().optional(),
-  email: z.string().optional(),
+  email: z.string().email().optional(),
   phone: z.string().optional(),
   availabilityDays: z.array(staffDaySchema).min(1).optional(),
   notes: z.string().optional(),
@@ -309,9 +310,11 @@ router.post(
     const input = createStaffSchema.parse(req.body);
     const staffMember = await staffService.createStaffMember(input);
 
+    const { passwordHash, ...safeStaff } = staffMember;
+
     res.status(201).json({
       message: "Staff member created successfully.",
-      staffMember,
+      staffMember: safeStaff,
     });
   }),
 );
@@ -325,9 +328,11 @@ router.patch(
       input,
     );
 
+    const { passwordHash: _, ...safeStaff } = staffMember;
+
     res.json({
       message: "Staff member updated successfully.",
-      staffMember,
+      staffMember: safeStaff,
     });
   }),
 );

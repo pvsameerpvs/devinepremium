@@ -1,9 +1,18 @@
+import bcrypt from "bcryptjs";
 import { AppDataSource } from "../config/data-source";
 import { StaffMember } from "../entities/StaffMember";
+import { Booking } from "../entities/Booking";
+import { Payment } from "../entities/Payment";
+import { createStatusHistoryEntry } from "./bookingService";
+import { paymentService } from "./paymentService";
+import { signAuthToken } from "../utils/jwt";
+import { HttpError } from "../utils/http";
 import {
   STAFF_AVAILABILITY_DAYS,
   StaffAvailabilityDay,
   StaffMemberInput,
+  BookingStatus,
+  PaymentStatus,
 } from "../types/domain";
 
 const staffRepository = () => AppDataSource.getRepository(StaffMember);
@@ -149,7 +158,7 @@ export const staffService = {
     return ensureStaffSlug(staffMember);
   },
 
-  async createStaffMember(input: StaffMemberInput) {
+  async createStaffMember(input: StaffMemberInput & { password?: string }) {
     const fullName = input.fullName.trim();
     const availabilityDays = normalizeAvailabilityDays(input.availabilityDays);
 
@@ -165,16 +174,27 @@ export const staffService = {
       normalizeSlug(input.slug) || fullName,
     );
 
+    if (input.password && input.password.length < 8) {
+      throw new Error("Password must be at least 8 characters.");
+    }
+
+    const passwordHash = input.password
+      ? await bcrypt.hash(input.password, 10)
+      : null;
+
+    const email = input.email ? input.email.trim().toLowerCase() : null;
+
     const staffMember = staffRepository().create({
       fullName,
       slug,
-      email: normalizeText(input.email),
+      email,
       phone: normalizeText(input.phone),
       availabilityDays,
       notes: normalizeText(input.notes),
       profilePhotoUrl: normalizeImagePayload(input.profilePhotoUrl),
       documentImageUrls: normalizeDocumentImages(input.documentImageUrls),
       isActive: input.isActive ?? true,
+      passwordHash,
     });
 
     return staffRepository().save(staffMember);
@@ -250,5 +270,142 @@ export const staffService = {
     const staffMember = await this.getStaffMember(staffId);
     await staffRepository().delete({ id: staffMember.id });
     return staffMember;
+  },
+
+  async loginStaff(email: string, password: string) {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const staffMember = await staffRepository()
+      .createQueryBuilder("staff")
+      .addSelect("staff.passwordHash")
+      .where("LOWER(staff.email) = :email", { email: normalizedEmail })
+      .getOne();
+
+    if (!staffMember || !staffMember.passwordHash) {
+      throw new HttpError(401, "Invalid email or password.");
+    }
+
+    const passwordMatches = await bcrypt.compare(
+      password,
+      staffMember.passwordHash,
+    );
+
+    if (!passwordMatches || !staffMember.isActive) {
+      throw new HttpError(401, "Invalid email or password.");
+    }
+
+    const token = signAuthToken({
+      sub: staffMember.id,
+      email: staffMember.email || "",
+      role: "staff",
+      fullName: staffMember.fullName,
+    });
+
+    return {
+      message: "Login successful.",
+      token,
+      user: {
+        id: staffMember.id,
+        fullName: staffMember.fullName,
+        email: staffMember.email,
+        phone: staffMember.phone,
+        role: "staff",
+      },
+    };
+  },
+
+  async getStaffBookings(staffId: string, date?: string) {
+    const bookings = await AppDataSource.getRepository(Booking)
+      .createQueryBuilder("booking")
+      .leftJoinAndSelect("booking.statusHistory", "statusHistory")
+      .leftJoinAndSelect("booking.payments", "payment")
+      .where("booking.assignedStaffId = :staffId", { staffId })
+      .orderBy("booking.createdAt", "DESC")
+      .addOrderBy("statusHistory.createdAt", "DESC")
+      .getMany();
+
+    if (date) {
+      return bookings.filter((b) => b.schedule.date === date);
+    }
+
+    return bookings;
+  },
+
+  async updateBookingStatus(
+    staffId: string,
+    bookingId: string,
+    status: "in_progress" | "completed",
+  ) {
+    const booking = await AppDataSource.getRepository(Booking).findOne({
+      where: { id: bookingId, assignedStaffId: staffId },
+    });
+
+    if (!booking) {
+      throw new HttpError(404, "Booking not found or not assigned to you.");
+    }
+
+    const VALID_TRANSITIONS: Record<string, BookingStatus[]> = {
+      scheduled: ["in_progress"],
+      in_progress: ["completed"],
+    };
+
+    const allowedNext = VALID_TRANSITIONS[booking.status];
+
+    if (!allowedNext || !allowedNext.includes(status)) {
+      throw new HttpError(
+        400,
+        `Cannot change status from "${booking.status}" to "${status}". Expected: ${allowedNext?.join(" or ") || "no valid transition"}.`,
+      );
+    }
+
+    const previousStatus = booking.status;
+
+    await createStatusHistoryEntry({
+      bookingId: booking.id,
+      changedByUserId: null,
+      fromStatus: previousStatus,
+      toStatus: status,
+      note:
+        status === "in_progress"
+          ? "Staff started the job."
+          : "Staff completed the job.",
+    });
+
+    booking.status = status;
+    await AppDataSource.getRepository(Booking).save(booking);
+
+    return booking;
+  },
+
+  async updatePaymentStatus(
+    staffId: string,
+    bookingId: string,
+    status: PaymentStatus,
+  ) {
+    const booking = await AppDataSource.getRepository(Booking).findOne({
+      where: { id: bookingId, assignedStaffId: staffId },
+      relations: { payments: true },
+    });
+
+    if (!booking) {
+      throw new HttpError(404, "Booking not found or not assigned to you.");
+    }
+
+    const payment = booking.payments?.[0];
+    if (!payment) {
+      throw new HttpError(404, "No payment found for this booking.");
+    }
+
+    return paymentService.updatePaymentStatus(payment.id, status);
+  },
+
+  async setStaffPassword(staffId: string, password: string) {
+    if (password.length < 8) {
+      throw new Error("Password must be at least 8 characters.");
+    }
+
+    const staffMember = await this.getStaffMember(staffId);
+    staffMember.passwordHash = await bcrypt.hash(password, 10);
+    await staffRepository().save(staffMember);
   },
 };
