@@ -71,6 +71,11 @@ export default function StaffLoginPage() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#152344] to-[#223761] px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
+          <img
+            src="/logo.png"
+            alt="Devine Premium"
+            className="mx-auto mb-4 h-16 w-auto"
+          />
           <h1 className="text-2xl font-black text-white">Staff Login</h1>
           <p className="mt-2 text-sm text-slate-300">
             Devine Premium Operations

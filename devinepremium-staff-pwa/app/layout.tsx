@@ -16,7 +16,10 @@ export const metadata: Metadata = {
   title: "Devine Premium Staff",
   description: "Staff operations dashboard",
   manifest: "/manifest.json",
-  icons: [{ rel: "icon", url: "/icon-192.svg", type: "image/svg+xml" }],
+  icons: [
+    { rel: "icon", url: "/logo.png", type: "image/png" },
+    { rel: "apple-touch-icon", url: "/logo.png", type: "image/png" },
+  ],
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

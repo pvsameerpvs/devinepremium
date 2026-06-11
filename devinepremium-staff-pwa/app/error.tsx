@@ -16,6 +16,11 @@ export default function StaffPwaError({
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-lg">
+        <img
+          src="/logo.png"
+          alt="Devine Premium"
+          className="mx-auto mb-6 h-12 w-auto"
+        />
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
           <span className="text-2xl font-bold text-red-600">!</span>
         </div>

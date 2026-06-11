@@ -34,13 +34,20 @@ export function StaffDashboardShell({ children }: StaffDashboardShellProps) {
     <div className="flex min-h-screen flex-col bg-slate-50">
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white px-4 py-3">
         <div className="mx-auto flex max-w-2xl items-center justify-between">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#A65A2A]">
-              Staff
-            </p>
-            <h1 className="text-base font-bold text-slate-900">
-              {session?.user?.fullName || "Dashboard"}
-            </h1>
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="Devine Premium"
+              className="h-8 w-auto"
+            />
+            <div className="border-l border-slate-200 pl-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#A65A2A]">
+                Staff
+              </p>
+              <h1 className="text-base font-bold text-slate-900">
+                {session?.user?.fullName || "Dashboard"}
+              </h1>
+            </div>
           </div>
           <button
             type="button"

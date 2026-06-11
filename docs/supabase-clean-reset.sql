@@ -76,6 +76,19 @@ create table public.staff_members (
   "profilePhotoUrl" text,
   "documentImageUrls" text,
   "isActive" boolean not null default true,
+  "passwordHash" varchar,
+  "createdAt" timestamptz not null default now(),
+  "updatedAt" timestamptz not null default now()
+);
+
+create table public.service_categories (
+  id uuid primary key default gen_random_uuid(),
+  slug varchar(128) not null unique,
+  title varchar(255) not null,
+  description text,
+  "imageUrl" text,
+  "sortOrder" integer not null default 0,
+  "isActive" boolean not null default true,
   "createdAt" timestamptz not null default now(),
   "updatedAt" timestamptz not null default now()
 );
@@ -90,6 +103,7 @@ create table public.services (
   "sortOrder" integer not null default 0,
   "basePrice" double precision not null default 0,
   "priceUnit" varchar(64),
+  "categoryId" varchar,
   "pricingMode" varchar(32) not null default 'package',
   "pricingConfig" text not null default '{}',
   options text not null default '[]',
@@ -181,6 +195,10 @@ create index "idx_bookings_assignedStaffId" on public.bookings("assignedStaffId"
 create index "idx_bookings_status" on public.bookings(status);
 create index "idx_bookings_paymentStatus" on public.bookings("paymentStatus");
 create index "idx_services_slug" on public.services(slug);
+create index "idx_services_categoryId" on public.services("categoryId");
+create index "idx_service_categories_slug" on public.service_categories(slug);
+create index "idx_service_categories_isActive_sortOrder"
+  on public.service_categories("isActive", "sortOrder");
 create index "idx_services_isActive_sortOrder"
   on public.services("isActive", "sortOrder");
 create index "idx_payments_bookingId" on public.payments("bookingId");
@@ -190,6 +208,7 @@ create index "idx_booking_status_history_bookingId"
 create index "idx_saved_addresses_userId" on public.saved_addresses("userId");
 
 alter table public.users enable row level security;
+alter table public.service_categories enable row level security;
 alter table public.services enable row level security;
 alter table public.staff_members enable row level security;
 alter table public.bookings enable row level security;
@@ -198,6 +217,7 @@ alter table public.booking_status_history enable row level security;
 alter table public.saved_addresses enable row level security;
 
 revoke all on table public.users from anon, authenticated;
+revoke all on table public.service_categories from anon, authenticated;
 revoke all on table public.services from anon, authenticated;
 revoke all on table public.staff_members from anon, authenticated;
 revoke all on table public.bookings from anon, authenticated;

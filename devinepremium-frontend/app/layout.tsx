@@ -15,6 +15,7 @@ export const metadata: Metadata = {
   title: "Devine Premier Technical Services | Professional Home Services UAE",
   description:
     "Book trusted professionals for cleaning, painting, and maintenance in Dubai, Abu Dhabi & Sharjah. Devine Premier Technical Services — top-rated service at your doorstep.",
+  icons: [{ rel: "icon", url: "/fevic.png", type: "image/png" }],
 };
 
 import { Toaster } from "react-hot-toast";
